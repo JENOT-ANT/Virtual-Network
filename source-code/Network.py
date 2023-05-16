@@ -16,16 +16,16 @@ from time import sleep, time
 from uuid import uuid4, UUID
 from Errors import error
 
-FREQUENCY: float = 0.5
+FREQUENCY: float = 0.25
 AI_TIME: int = 60 * 30
-NOTIFICATION_CHANNEL: str = "terminal"
+# NOTIFICATION_CHANNEL: str = "terminal"
 MAX_CV: int = int(1e9)
 MAX_CV_HASH: int = 10000
 FOUND_CV_AMOUNT: int = 4
 
 PASSWD_LENGHT: int = 4
 PASSWDS_ALPHABET: str = "02458AMPQYZ"
-MAX_GUESS: int = len(PASSWDS_ALPHABET)**PASSWD_LENGHT
+MAX_GUESS: int = len(PASSWDS_ALPHABET) ** PASSWD_LENGHT
 
 MAX_EXPLOITS_AMOUNT: int = 20
 
@@ -36,20 +36,22 @@ SYSTEM_PORTS: dict = {
 }
 
 DEFAULT_OS: int = 0
-FILENAME_LIMIT: int = 14
+FILENAME_LIMIT: int = 12
 
 
 OFFER_TYPES: dict = {
-    "update": 0,
+    #"update": 0,
     "exploit": 1,
     "ip_list": 2,
 }
+
 
 def chance(success: int) -> bool:
     if randint(1, 100) <= success:
         return True
     else:
         return False
+
 
 class Offer:
 
@@ -82,6 +84,7 @@ class Network:
     by_id: dict[int, VM]
 
     mods: list[int]
+    # guilds: dict[int, dict[str, int|bool]] # {guild_id: {'owner': owner_id, 'is_private': is_whole_private}}
 
     system_network: dict[int, Packet]
 
@@ -99,6 +102,7 @@ class Network:
         self.by_id = {}
 
         self.mods = []
+        self.guilds = {}
         
         self.system_network = {}
         self.bank = MAX_CV
@@ -172,13 +176,13 @@ class Network:
         
         if "offers" in db.keys():
             self.offers = db["offers"]
-        else:
-            self.offers = [
-                Offer(None, OFFER_TYPES["update"], 200, "kernel"),
-                Offer(None, OFFER_TYPES["update"], 100, "ssh"),
-                Offer(None, OFFER_TYPES["update"], 100, "AI"),
-                Offer(None, OFFER_TYPES["update"], 300, "miner"),
-            ]
+        # else:
+        #     self.offers = [
+        #         Offer(None, OFFER_TYPES["update"], 200, "kernel"),
+        #         Offer(None, OFFER_TYPES["update"], 100, "ssh"),
+        #         Offer(None, OFFER_TYPES["update"], 100, "AI"),
+        #         Offer(None, OFFER_TYPES["update"], 300, "miner"),
+        #     ]
         
         db.close()
 
@@ -230,9 +234,6 @@ class Network:
         attacker: VM
         answer: str
 
-        if not target_ip in self.by_ip.keys():
-            return "Exploit failed! Target not found."
-        
         if attacker_nick == None:
             attacker_nick = vm.nick
         
@@ -242,7 +243,7 @@ class Network:
         attacker = self.by_nick[attacker_nick]
 
         if not target_ip in self.by_ip.keys():
-            return "Error! Target not found."
+            return "Exploit failed! Target not found."
 
         if exploit_id >= len(attacker.exploits):
             return "Error! Exploit not found."
@@ -587,25 +588,13 @@ class Network:
             if answer.source[0] == SYSTEM_IP and answer.content == "found":
                 vm.add_to_log(f"Found {FOUND_CV_AMOUNT + vm.software['miner']} [CV] by miner.")
     
-    def start_ai(self, nick: str, args: list[str]) -> str:
-        vm: VM = self.by_nick[nick]
-        lvl: int
+    def start_ai(self, dc_id: int, lvl: int) -> str:
+        vm: VM = self.by_id[dc_id]
 
-        if len(args) != 2:
-            return error(0, 1)
-        
-        if args[1] == "max":
-            lvl = vm.software["AI"]
-        else:
-            if args[1].isdigit() is False:
-                return error(1, 1)
-            
-            lvl = int(args[1])
-
-        if self.by_nick[nick].software["AI"] < lvl:
+        if vm.software["AI"] < lvl:
             return error(2, 2)
 
-        if len(self.by_nick[nick].exploits) >= MAX_EXPLOITS_AMOUNT:
+        if len(vm.exploits) >= MAX_EXPLOITS_AMOUNT:
             return error(3)
 
         # self.by_nick[nick].files["AI.proc"] = f"{int(time())} {lvl}"
@@ -628,11 +617,11 @@ class Network:
             print(f"Exploit found by {vm.nick}!")
             # self.notifications.append((vm.squad, vm.nick, "Exploit found."))
 
-    def start_bf(self, nick: str, hashed: str) -> str:
+    def start_bf(self, dc_id: int, hashed: str) -> str:
 
-        self.by_nick[nick].cpu.append(Process("bf", "pass"))
-        self.by_nick[nick].cpu[len(self.by_nick[nick].cpu) - 1].memory["hash"] = hashed
-        self.by_nick[nick].cpu[len(self.by_nick[nick].cpu) - 1].memory["principle"] = 0
+        self.by_id[dc_id].cpu.append(Process("bf", "pass"))
+        self.by_id[dc_id].cpu[len(self.by_id[dc_id].cpu) - 1].memory["hash"] = hashed
+        self.by_id[dc_id].cpu[len(self.by_id[dc_id].cpu) - 1].memory["principle"] = 0
         
         return "Started brutforce on the hash."
 
@@ -699,6 +688,7 @@ class Network:
                 
                 vm.files["scan.txt"] += f"\t{port:<2}:    {answer.content}\n{25 * '_'}"
             
+            print(vm.files["scan.txt"])
             process.name = "temp"
             process.code = ["exit", ]
 
@@ -712,8 +702,8 @@ class Network:
 
     def buy(self, offer_id: int, buyer: str) -> str:
         
-        if self.offers[offer_id].type == OFFER_TYPES["update"] and self.by_nick[buyer].software[self.offers[offer_id].content] >= MAX_SOFTWARE[self.offers[offer_id].content]:
-            return error(4, 3)
+        # if self.offers[offer_id].type == OFFER_TYPES["update"] and self.by_nick[buyer].software[self.offers[offer_id].content] >= MAX_SOFTWARE[self.offers[offer_id].content]:
+        #     return error(4, 3)
 
         if self.offers[offer_id].type == OFFER_TYPES["exploit"] and len(self.by_nick[buyer].exploits) >= MAX_EXPLOITS_AMOUNT:
             return error(4, 4)
@@ -722,8 +712,8 @@ class Network:
             return error(4, 5)
         
 
-        if self.offers[offer_id].type == OFFER_TYPES["update"]:
-            self.by_nick[buyer].software[self.offers[offer_id].content] += 1
+        # if self.offers[offer_id].type == OFFER_TYPES["update"]:
+        #     self.by_nick[buyer].software[self.offers[offer_id].content] += 1
 
         if self.offers[offer_id].type == OFFER_TYPES["exploit"]:
             self.offers[offer_id].content.reset()
@@ -761,10 +751,10 @@ class Network:
         
         return content
 
-    def recv(self, port: int, vm: None|VM=None) -> Packet:
+    def recv(self, port: int, vm: None|VM=None) -> Packet | None:
         if vm != None:
             if not port in vm.network.keys():
-                return Packet((SYSTEM_IP, 1), 'Critical Network Error!')
+                return None#Packet((SYSTEM_IP, 1), 'Critical Network Error!')
 
             return vm.network.pop(port)
         else:

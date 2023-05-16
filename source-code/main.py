@@ -2,6 +2,7 @@ from Bot import Bot
 from os import getenv, chdir
 from os.path import dirname
 
+
 def load_token() -> str:
     token = getenv('API_TOKEN')
     

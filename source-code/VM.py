@@ -46,13 +46,13 @@ VM_HELP: str = """
   
   ## Local (can be executed only on your VM):
     
-    - $bf <hash> --------------> brutforce hash to find password
+    V- $bf <hash> --------------> brutforce hash to find password
 
-    - $whois <IP> -------------> display squad and nick of the player with that IP
+    V- $whois <IP> -------------> display squad and nick of the player with that IP
     
     - $time -------------------> display server time
     
-    - $ai <lvl> ---------------> generate random exploit of the level (lvl <= AI)
+    V- $ai <lvl> ---------------> generate random exploit of the level (lvl <= AI)
 
     - $archives ---------------> [🗃] list owned exploits
 
@@ -64,13 +64,13 @@ VM_HELP: str = """
 
     - > help -------------------> [❔] display this commands' help message
     
-    - > panel ------------------> [📟] display dashboard with info about the machine
+    V- > panel ------------------> [📟] display dashboard with info about the machine
     
-    - > transfer <nick><value> -> transfer <value> of CV to the VM of the <nick> player
+    V- > transfer <nick><value> -> transfer <value> of CV to the VM of the <nick> player
 
     - > close ------------------> [🛡] close external ssh connections to your VM
   
-    - > ps ---------------------> display currently running processes
+    V- > ps ---------------------> display currently running processes
   
   ## Hacking:
 
@@ -80,17 +80,17 @@ VM_HELP: str = """
   
   ## Files:
 
-    - > ls ---------------------> [📁] list files of currently logged-in user
+    V- > ls ---------------------> [📁] list files of currently logged-in user
     
-    - > cat <filename> ---------> display content of the file
+    V- > cat <filename> ---------> display content of the file
 
-    - > rm <filename> ----------> remove file
+    V- > rm <filename> ----------> remove file
   
   ## SSH:
   
     - > ssh <IP><port><passwd> -> connect to IP's VM (Virtual Machine)
     
-    - > whoami -----------------> display currently-logged user's nick and IP
+    V- > whoami -----------------> display currently-logged user's nick and IP
   
     - > exit -------------------> close last ssh connection
   
