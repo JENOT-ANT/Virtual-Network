@@ -7,7 +7,7 @@ from VM import OS_LIST
 from random import randint
 
 ADMIN: int = 997119789329825852
-ACTIVITY: str = 'Hacking the Planet!'
+ACTIVITY: str = '🐱‍💻 Hacking the Planet!'
 MAX_NAME_LENGTH: int = 12
 
 
@@ -22,8 +22,8 @@ ROLES: dict[str, discord.Color] = {
 INSTRUCTION: str = '''
 
 # STARTUP:
-  1. Use `/register` command to init your game virtual machine (called VM).
-  2. You can communicate with your VM using commands formated like this: `-cmd-`.
+  1. Use `/register` command to initialize your game virtual machine (called VM).
+  2. You can communicate with your VM using commands formated like this: `/-cmd-`.
   3. Use `/-panel-` command to view basic info about your VM.
   4. Use `/help topic` command to display more bright explanations about the topic.
 
@@ -36,11 +36,41 @@ INSTRUCTION: str = '''
 '''
 
 SOFTWARE_HELP: str = '''
-SOFTWARE:
 
+# SOFTWARE
+
+    ## MINER
+    > It's client of system crypt-currency-server, that mines you some **CV** all the time, as far as your nick is included in `miner.config` file...
+    
+    ## AI
+    > Wanna attack? AI lets you find voulnerabilites and make new exploits (that can be used for attack, or just sold). To produce exploit use `/--ai--` command. Use `/--archives--` command to view your exploits and `/-exploit-` command to use your exploit. Check out `/help hack` to learn more about attacking.
+    
+    ## KERNEL
+    > It's the core of your system. It's the same as your OS level. If exploited usually give direct access to the system, so keep it safe and high level!
+    
+    ## SSH
+    > It's a program used for loggining-in remotely to VM's. Low version of SSH means your system is exposed to stealing your hash (of password).
 '''
 HACK_HELP: str = '''
-HOW TO HACK:
+
+# HOW TO HACK? STEP BY STEP
+    
+    1. **FIND THE TARGET**
+    > You have to obtain the IP address of the VM you want to hack. You can usually find it in `network.dump` file or (in any VM you have access to).
+    
+    2. **SCAN**
+
+    3. **GET EXPLOIT**
+
+    4. **EXPLOIT**
+      - Kernel Exploit
+      - SSH Exploit
+      
+    5. **PROFITS**
+    
+    6. **FOOTPRINTS**
+    
+    7. **PROXY**
 
 '''
 
@@ -50,7 +80,7 @@ class Bot:
     network: Network
     cpu_loop: Thread
 
-    async def __ssh__(self, cmd_text: str, cmd: discord.Interaction):
+    async def __ssh(self, cmd_text: str, cmd: discord.Interaction):
         ip: str
         port: int
         nick: str
@@ -67,7 +97,7 @@ class Bot:
         
         await cmd.response.send_message(f'```js\n{self.network.ssh(self.network.by_id[cmd.user.id])}\n```', ephemeral=True)
     
-    def __log__(self, cmd_function):
+    def __log(self, cmd_function):
         @wraps(cmd_function)
         async def log(*args, **kwargs):
             print(f'{args[0].guild.name if args[0].guild != None else "dm"} -> {args[0].user.name}: {args[0].command.name if args[0].command != None else "Not Recognised"}')
@@ -76,7 +106,18 @@ class Bot:
         
         return log
 
-    def __wrapped__(self, text: str, color: bool=False):
+    # def __account_check(self, cmd_function):
+    #     @wraps(cmd_function)
+    #     async def account_check(*args, **kwargs):
+    #         if not args[0].user.id in self.network.by_id.keys():
+    #             await args[0].response.send_message('You are not registered... Check `/register`', ephemeral=True)
+    #             return
+
+    #         return await cmd_function(*args, **kwargs)
+        
+    #     return account_check
+
+    def __wrapped(self, text: str, color: bool=False):
         return f'```{"js" if color is True else ""}\n{text}\n```'
 
     def __init__(self) -> None:
@@ -112,7 +153,7 @@ class Bot:
         #     await cmd.response.send_message(f'{new_mod.mention}\nWelcome to the moderation team!')
 
         @self.tree.command(name='close')
-        @self.__log__
+        @self.__log
         async def close(cmd: discord.Interaction, save: bool=True):
             '''Shut down the bot'''
 
@@ -130,7 +171,7 @@ class Bot:
             await self.client.close()
         
         @self.tree.command(name='help')
-        @self.__log__
+        @self.__log
         async def help(cmd: discord.Interaction, topic: str|None=None):
             '''Display game instructions'''
 
@@ -144,15 +185,23 @@ class Bot:
                 await cmd.response.send_message('Topic not found. Try `/help` without any topic to display the topic list.', ephemeral=True)
 
         @self.tree.command(name='save')
-        @self.__log__
+        @self.__log
         async def save(cmd: discord.Interaction) -> None:
             '''Save game progress.'''
 
             self.network.save()
             await cmd.response.send_message('Progress saved.', ephemeral=True)
 
+        @self.tree.command(name='bank')
+        @self.__log
+        async def bank(cmd: discord.Interaction):
+            '''
+            Display global-bank account
+            '''
+            await cmd.response.send_message(self.__wrapped(f'CV amount at bank: {self.network.bank} [CV]', True), ephemeral=True)
+
         @self.tree.command(name='register')
-        @self.__log__
+        @self.__log
         async def register(cmd: discord.Interaction, new_nick: str|None=None, vm_os: str|None=None) -> None:
             '''
             Initialize your player profile. OS list: Penguin, Parrot, Racoon, Turtle
@@ -196,7 +245,7 @@ class Bot:
             await cmd.response.send_message(f'{cmd.user.mention}\nWelcome to the Exclusive-Virtual-Network-Playground!')
         
         @self.tree.command(name='list-squads')
-        @self.__log__
+        @self.__log
         async def list_squads(cmd: discord.Interaction):
             '''Display a list of squads'''
 
@@ -214,10 +263,10 @@ class Bot:
 
                 squad_list += f"{squad.name:^12} | {len(squad.members.keys()):2}/{MAX_MEMBERS} | {'open' if squad.recruting is True else 'close':5} | {leader}\n"
             
-            await cmd.response.send_message(self.__wrapped__(squad_list), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(squad_list), ephemeral=True)
 
         @self.tree.command(name='join-squad')
-        @self.__log__
+        @self.__log
         async def join_squad(cmd: discord.Interaction, squad_name: str):
             '''
             Join a squad that is recruiting
@@ -248,7 +297,7 @@ class Bot:
             await cmd.response.send_message(f'{cmd.user.mention} Welcome to **{squad_name}**! Contact the squad captain to get access to a private-channel/thread of your squad.')
 
         @self.tree.command(name='squad-panel')
-        @self.__log__
+        @self.__log
         async def squad_panel(cmd: discord.Interaction):
             '''Display basic info about your squad'''
             squad_name: str | None
@@ -263,10 +312,10 @@ class Bot:
                 await cmd.response.send_message('You are not in a squad, are you?', ephemeral=True)
                 return
             
-            await cmd.response.send_message(self.__wrapped__(self.network.squads[squad_name].panel()), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(self.network.squads[squad_name].panel(), True), ephemeral=True)
 
         @self.tree.command(name='rename')
-        @self.__log__
+        @self.__log
         async def rename(cmd: discord.Interaction, new_nick: str):
             '''
             Change in-game nickname
@@ -292,22 +341,39 @@ class Bot:
             self.network.change_nick(cmd.user.id, new_nick)
             await cmd.response.send_message(f'{cmd.user.mention} Your new in-game nick is: {new_nick}')
 
+        @self.tree.command(name='whois')
+        @self.__log
+        async def whois(cmd: discord.Interaction, ip_address: str):
+            '''
+            Display squad and nick of the player with that IP
+            
+            Parameters
+            ----------
+            ip_address : str
+                IP address to resolve
+            '''
+            if not ip_address in self.network.by_ip.keys():
+                await cmd.response.send_message("IP address not found.", ephemeral=True)
+                return
+            
+            await cmd.response.send_message(self.__wrapped(f'{ip_address}:\n\tnick: {self.network.by_ip[ip_address].nick}\n\tsquad: {self.network.by_ip[ip_address].squad}'), ephemeral=True)
+        
         @self.tree.command(name='-panel-')
-        @self.__log__
+        @self.__log
         async def panel(cmd: discord.Interaction):
             '''Display dashboard with info about the VM of currently logged-in user'''
 
-            await self.__ssh__('panel', cmd)
+            await self.__ssh('panel', cmd)
         
         @self.tree.command(name='-ls-')
-        @self.__log__
+        @self.__log
         async def ls(cmd: discord.Interaction):
             '''List files of currently logged-in user'''
 
-            await self.__ssh__('ls', cmd)
+            await self.__ssh('ls', cmd)
         
         @self.tree.command(name='-cat-')
-        @self.__log__
+        @self.__log
         async def cat(cmd: discord.Interaction, file_name: str) -> None:
             '''
             Display content of the file
@@ -318,10 +384,10 @@ class Bot:
                 Name of the file to display
             '''
 
-            await self.__ssh__(f'cat {file_name}', cmd)
+            await self.__ssh(f'cat {file_name}', cmd)
 
         @self.tree.command(name='-rm-')
-        @self.__log__
+        @self.__log
         async def rm(cmd: discord.Interaction, file_name: str) -> None:
             '''
             Remove the file from currently logged-in user
@@ -331,23 +397,23 @@ class Bot:
             file_name : str
                 Name of the file to remove
             '''
-            await self.__ssh__(f'rm {file_name}', cmd)
+            await self.__ssh(f'rm {file_name}', cmd)
 
         @self.tree.command(name='-ps-')
-        @self.__log__
+        @self.__log
         async def ps(cmd: discord.Interaction):
             '''Display currently running processes'''
 
-            await self.__ssh__('ps', cmd)
+            await self.__ssh('ps', cmd)
         
         @self.tree.command(name='-whoami-')
-        @self.__log__
+        @self.__log
         async def whoami(cmd: discord.Interaction):
             '''Display currently-logged user's nick and IP'''
-            await self.__ssh__('whoami', cmd)
+            await self.__ssh('whoami', cmd)
 
         @self.tree.command(name='-transfer-')
-        @self.__log__
+        @self.__log
         async def transfer(cmd: discord.Interaction, nick: str, amount: int):
             '''
             Transfer CV from currntly logged-in accunt to the account under the game-nick
@@ -361,10 +427,18 @@ class Bot:
                 Amount of money to transfer
             '''
 
-            await self.__ssh__(f'transfer {nick} {amount}', cmd)
+            await self.__ssh(f'transfer {nick} {amount}', cmd)
+
+        @self.tree.command(name='-passwd-')
+        @self.__log
+        async def passwd(cmd: discord.Interaction):
+            '''
+            Generate new password for the currently logged-in VM
+            '''
+            await self.__ssh('passwd', cmd)
 
         @self.tree.command(name='--archives--')
-        @self.__log__
+        @self.__log
         async def archives(cmd: discord.Interaction):
             '''List owned exploits'''
 
@@ -372,10 +446,10 @@ class Bot:
                 await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
                 return
             
-            await cmd.response.send_message(self.__wrapped__(self.network.by_id[cmd.user.id].archives()), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(self.network.by_id[cmd.user.id].archives()), ephemeral=True)
         
         @self.tree.command(name='--brute-force--')
-        @self.__log__
+        @self.__log
         async def bf(cmd: discord.Interaction, passwd_hash: str):
             '''
             Brutforce the hash to find the password corresponding to it
@@ -390,27 +464,10 @@ class Bot:
                 await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
                 return
 
-            await cmd.response.send_message(self.__wrapped__(self.network.start_bf(cmd.user.id, passwd_hash)), ephemeral=True)
-
-        @self.tree.command(name='-whois-')
-        @self.__log__
-        async def whois(cmd: discord.Interaction, ip_address: str):
-            '''
-            Display squad and nick of the player with that IP
-            
-            Parameters
-            ----------
-            ip_address : str
-                IP address to resolve
-            '''
-            if not ip_address in self.network.by_ip.keys():
-                await cmd.response.send_message("IP address not found.", ephemeral=True)
-                return
-            
-            await cmd.response.send_message(self.__wrapped__(f'{ip_address}:\n\tnick: {self.network.by_ip[ip_address].nick}\n\tsquad: {self.network.by_ip[ip_address].squad}'), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(self.network.start_bf(cmd.user.id, passwd_hash)), ephemeral=True)
 
         @self.tree.command(name='--ai--')
-        @self.__log__
+        @self.__log
         async def ai(cmd: discord.Interaction, lvl: int):
             '''
             Generate random-power exploit of the level specified
@@ -420,10 +477,10 @@ class Bot:
             lvl : int
                 Level of the exploit to create
             '''
-            await cmd.response.send_message(self.__wrapped__(self.network.start_ai(cmd.user.id, lvl)), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(self.network.start_ai(cmd.user.id, lvl)), ephemeral=True)
 
         @self.tree.command(name='-exploit-')
-        @self.__log__
+        @self.__log
         async def exploit(cmd: discord.Interaction, ip: str, port: int, exploit_id: int):
             '''
             Run the exploit with specified ID, against the target by given IP
@@ -437,10 +494,10 @@ class Bot:
             exploit_id : int
                 ID of the exploit to run (check your exploit-list using `--archives--` cmd)
             '''
-            await self.__ssh__(f'exploit {ip} {port} {exploit_id}', cmd)
+            await self.__ssh(f'exploit {ip} {port} {exploit_id}', cmd)
 
         @self.tree.command(name='-scan-')
-        @self.__log__
+        @self.__log
         async def scan(cmd: discord.Interaction, target_ip: str):
             '''
             Scan given IP for open ports and other details
@@ -450,25 +507,45 @@ class Bot:
             target_ip : str
                 IP address of the target VM to scan
             '''
-            await self.__ssh__(f'scan {target_ip}', cmd)
+            await self.__ssh(f'scan {target_ip}', cmd)
 
         @self.tree.command(name='-exit-')
-        @self.__log__
+        @self.__log
         async def exit(cmd: discord.Interaction):
             '''
             Close the last ssh connection (check `/-proxy-` cmd)
             '''
 
-            await self.__ssh__('exit', cmd)
+            await self.__ssh('exit', cmd)
         
         @self.tree.command(name='-proxy-')
-        @self.__log__
+        @self.__log
         async def proxy(cmd: discord.Interaction):
             '''
             Display your SSH connection path (VMs that you are connected to)
             '''
 
-            await self.__ssh__('proxy', cmd)
+            await self.__ssh('proxy', cmd)
+
+        @self.tree.command(name='--update--')
+        @self.__log
+        async def update(cmd: discord.Interaction, package_id: int | None=None):
+            '''
+            Update software of your VM. List possible updates and prices by not specifying the `package_id` parameter
+            
+            Parameters
+            ----------
+            package_id : int
+                ID of the package to update
+            '''
+            if not cmd.user.id in self.network.by_id.keys():
+                await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
+                return
+
+            if package_id == None:
+                await cmd.response.send_message(self.__wrapped(self.network.by_id[cmd.user.id].list_updates(), True), ephemeral=True)
+            else:
+                await cmd.response.send_message(self.__wrapped(self.network.update(cmd.user.id, package_id), True), ephemeral=True)
 
     def run(self, api_token: str) -> None:
         self.client.run(api_token)

@@ -39,13 +39,6 @@ DEFAULT_OS: int = 0
 FILENAME_LIMIT: int = 12
 
 
-OFFER_TYPES: dict = {
-    #"update": 0,
-    "exploit": 1,
-    "ip_list": 2,
-}
-
-
 def chance(success: int) -> bool:
     if randint(1, 100) <= success:
         return True
@@ -60,8 +53,8 @@ class Offer:
     price: int 
     content: str | Exploit
 
-
-    def __init__(self, seller: str|None, type: int, price: int, content):#content: str | Exploit
+    
+    def __init__(self, seller: str|None, type: int, price: int, content: str|Exploit):
         self.seller = seller
         self.type = type
         self.price = price
@@ -160,13 +153,7 @@ class Network:
 
         for squad in db["squads"]:
             self.squads[squad["name"]] = Squad(squad["name"], squad["members"], squad["recruting"])
-            
-            # for member in self.squads[squad["name"]].members.keys():
-            #     if self.squads[squad["name"]].members[member] == "Squad-Leader" or self.squads[squad["name"]].members[member] == "Leader":
-            #         self.squads[squad["name"]].members[member] = LEADER
-                
-            #     elif self.squads[squad["name"]].members[member] == "Squad-Recruit" or self.squads[squad["name"]].members[member] == "Recruit":
-            #         self.squads[squad["name"]].members[member] = RECRUIT
+
 
         if "bank" in db.keys():
             self.bank = db["bank"]
@@ -176,13 +163,6 @@ class Network:
         
         if "offers" in db.keys():
             self.offers = db["offers"]
-        # else:
-        #     self.offers = [
-        #         Offer(None, OFFER_TYPES["update"], 200, "kernel"),
-        #         Offer(None, OFFER_TYPES["update"], 100, "ssh"),
-        #         Offer(None, OFFER_TYPES["update"], 100, "AI"),
-        #         Offer(None, OFFER_TYPES["update"], 300, "miner"),
-        #     ]
         
         db.close()
 
@@ -310,7 +290,7 @@ class Network:
             return "failed"
 
     def ssh(self, vm: VM) -> str:
-        packet: Packet
+        packet: Packet | None
         answer: Packet
         target: VM
         args: list
@@ -692,39 +672,7 @@ class Network:
             process.name = "temp"
             process.code = ["exit", ]
 
-    def sell_exploit(self, vm: VM, price: int, exploit_id: int) -> bool:
-        if exploit_id >= len(vm.exploits):
-            return False
-        
-        self.offers.append(Offer(vm.nick, OFFER_TYPES["exploit"], price, vm.exploits.pop(exploit_id)))
-
-        return True
-
-    def buy(self, offer_id: int, buyer: str) -> str:
-        
-        # if self.offers[offer_id].type == OFFER_TYPES["update"] and self.by_nick[buyer].software[self.offers[offer_id].content] >= MAX_SOFTWARE[self.offers[offer_id].content]:
-        #     return error(4, 3)
-
-        if self.offers[offer_id].type == OFFER_TYPES["exploit"] and len(self.by_nick[buyer].exploits) >= MAX_EXPLOITS_AMOUNT:
-            return error(4, 4)
-        
-        if self.transfer(self.offers[offer_id].price, self.offers[offer_id].seller, buyer) is False:
-            return error(4, 5)
-        
-
-        # if self.offers[offer_id].type == OFFER_TYPES["update"]:
-        #     self.by_nick[buyer].software[self.offers[offer_id].content] += 1
-
-        if self.offers[offer_id].type == OFFER_TYPES["exploit"]:
-            self.offers[offer_id].content.reset()
-
-            self.by_nick[buyer].exploits.append(self.offers[offer_id].content)
-            
-            self.offers.pop(offer_id)
-
-        return f"{buyer} has just bought #{offer_id} from exchange."
-
-    def __generate_ip__(self) -> str:
+    def __generate_ip(self) -> str:
         ip: str = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
         
         while ip in self.by_ip.keys() or ip == SYSTEM_IP:
@@ -732,8 +680,28 @@ class Network:
 
         return ip
 
-    def __generate_password__(self) -> str:
+    def __generate_password(self) -> str:
         return "".join(choices(PASSWDS_ALPHABET, k=PASSWD_LENGHT))
+    
+    def update(self, dc_id: int, software_id: int) -> str:
+        vm: VM = self.by_id[dc_id]
+        software: str
+        
+        if software_id < 0 or software_id >= len(MAX_SOFTWARE):
+            return 'Package ID out of range.'
+        
+        software = tuple(MAX_SOFTWARE.keys())[software_id]
+        
+        if vm.software[software] >= MAX_SOFTWARE[software]:
+            return 'There is no more packages avielabe for this software for now.'
+
+        if self.transfer((vm.software[software] + 1) * 100, None, vm.nick) is False:
+            return 'You don\'t have enough CV.'
+
+        vm.software[software] += 1
+
+        return f'The {software} has been updated to {vm.software[software]} lvl.'
+
 
 
     def direct_send(self, destination: tuple, source: tuple, content: str) -> str:
@@ -764,7 +732,7 @@ class Network:
             return self.system_network.pop(port)
 
     def set_passwd(self, nick: str):
-        self.by_nick[nick].files["shadow.sys"] = md5(self.__generate_password__().encode('ascii')).hexdigest()
+        self.by_nick[nick].files["shadow.sys"] = md5(self.__generate_password().encode('ascii')).hexdigest()
 
     def change_nick(self, dc_id: int, new_nick: str) -> None:
         old_nick: str
@@ -782,8 +750,6 @@ class Network:
         
         if squad_name != None:
             self.squads[squad_name].members[new_nick] = self.squads[squad_name].members.pop(old_nick)
-
-
 
     def cpu_loop(self):
         cmd: list[str]
@@ -836,7 +802,7 @@ class Network:
             sleep(FREQUENCY)
 
     def add_vm(self, nick: str, os: int, squad: str | None, user_id: int):
-        ip: str = self.__generate_ip__()
+        ip: str = self.__generate_ip()
         
         self.by_nick[nick] = VM(nick, squad, ip, user_id, os)
         self.by_ip[ip] = self.by_nick[nick]

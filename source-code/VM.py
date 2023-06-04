@@ -10,22 +10,22 @@ EXPLOITS: tuple[str, ...] = ("kernel", "ssh", )
 #     "secret": 4,
 # }
 
-MAX_SOFTWARE: dict = {
-    "http": 100,
+MAX_SOFTWARE: dict[str, int] = {
     "miner": 26,
     "AI": 100,
     "kernel": 100,
     "ssh": 100,
-    "dns": 1,
+    #"http": 100,
+    #"dns": 1,
 }
 
 DEFAULT_SOFTWARE: dict = {
-    "http": 1,
     "miner": 1,
     "AI": 1,
     "kernel": 1,
     "ssh": 1,
-    "dns": 0,
+    #"http": 1,
+    #"dns": 0,
 }
 
 # ports < 10 are not allowed
@@ -319,6 +319,18 @@ _______________________________________
         
         elif cmd[0] == "pass":
             pass
+
+    def list_updates(self) -> str:
+        output: str = ''
+        software_id: int = 0
+
+        for software in MAX_SOFTWARE.keys():
+            if self.software[software] < MAX_SOFTWARE[software]:
+                output += f'#{software_id} {software} {(self.software[software] + 1) * 100} CV\n'
+
+            software_id += 1
+
+        return output
 
     def __init__(self, nick: str, squad: str | None, ip: str, dc_id: int, os: int, wallet: int=0, software: dict={}, files: dict={}, exploits: list=[], port_config: dict={}):
         self.nick = nick
