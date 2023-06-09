@@ -5,8 +5,9 @@ from threading import Thread
 from Squad import RANKS, MAX_MEMBERS
 from VM import OS_LIST
 from random import randint
-from os import execl, chdir
+from os import execl
 from os.path import dirname
+from os import system
 from sys import platform
 
 ADMIN: int = 997119789329825852
@@ -164,17 +165,19 @@ class Bot:
         
         @self.client.event
         async def on_message(message: discord.Message):
-            if message.author.id != ADMIN:
+            # Linux server administartion commands:
+            
+            if message.author.id != ADMIN or 'win' in platform:
                 return
             
             if message.content.startswith('!update'):
-                pass
-            elif message.content.startswith('!restart') and not 'win' in platform:
+                system(f'cd {dirname(__file__)}/../scripts; ./get-sync.sh')
+            
+            elif message.content.startswith('!restart') is True:
                 self.network.running = False
                 self.cpu_loop.join()
 
-                chdir('../source-code')
-                execl('python3', 'main.py')
+                execl('/bin/bash', '-c', 'python3', f'{dirname(__file__)}/main.py')
                 
 
         # @self.tree.command(name='mod')
