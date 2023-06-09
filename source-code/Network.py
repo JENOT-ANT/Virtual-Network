@@ -8,12 +8,11 @@
 
 import shelve
 import random
-from Squad import Squad, RANKS
+from Squad import Squad
 from VM import VM, Packet, OS_LIST, EXPLOITS, Exploit, MAX_SOFTWARE, Process
 from hashlib import md5
 from random import randint, choices
 from time import sleep, time
-from uuid import uuid4, UUID
 from Errors import error
 
 FREQUENCY: float = 0.25
@@ -354,6 +353,14 @@ class Network:
                 iosout = vm.cat(args[1])
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
+            elif args[0] == 'edit':
+                if len(args) != 3:
+                    iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+
+                iosout = vm.edit(args[1], args[2])
+                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+
             elif args[0] == "transfer":
                 if len(args) != 3:
                     iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
@@ -570,28 +577,36 @@ class Network:
     
     def start_ai(self, dc_id: int, lvl: int) -> str:
         vm: VM = self.by_id[dc_id]
+        finish_time: int
 
         if vm.software["AI"] < lvl:
             return error(2, 2)
 
         if len(vm.exploits) >= MAX_EXPLOITS_AMOUNT:
             return error(3)
+        
+        for process in vm.cpu:
+            if process.name == 'ai':
+                return f'Can\'t spown AI process! Process-name confict detected...'
 
         # self.by_nick[nick].files["AI.proc"] = f"{int(time())} {lvl}"
+        finish_time = int(time()) + AI_TIME
+
         vm.cpu.append(Process("ai", "pass"))
-        vm.cpu[len(vm.cpu) - 1].memory["time"] = int(time())
+        vm.cpu[len(vm.cpu) - 1].memory["time"] = finish_time
         vm.cpu[len(vm.cpu) - 1].memory["lvl"] = lvl
 
-        return "Searching for vulnerabilities..."
+        return f'Searching for vulnerabilities...\nTime to finish: {AI_TIME // 3600} [h] {(AI_TIME % 3600) // 60} [min]'
 
     def vm_ai(self, vm: VM, process: Process):
-        start_time: int = process.memory["time"]
-        lvl: int = process.memory["lvl"]
+        finish_time: int = process.memory['time']
+        lvl: int = process.memory['lvl']
 
-        if start_time + AI_TIME <= int(time()):
+        if finish_time < int(time()):
             # produce a random exploit (take a look at VM.exploits for a template)
             vm.exploits.append(Exploit(randint(0, len(EXPLOITS) - 1), lvl, randint(0, len(OS_LIST) - 1), randint(50, 100)))
-            
+            vm.add_to_log('New exploit found by your AI.')
+
             process.kill()
             
             print(f"Exploit found by {vm.nick}!")

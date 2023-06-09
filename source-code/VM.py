@@ -98,7 +98,10 @@ VM_HELP: str = """
 
 """
 
-MAX_FILE_SIZE: int = 20
+
+MAX_FILES: int = 20
+MAX_FILE_LINES: int = 20
+MAX_FILE_SIZE: int = 4000
 
 
 class Packet:
@@ -181,12 +184,12 @@ class VM:
             
             lines_amount = self.files[file_name].count('\n') + 2
             
-            if lines_amount <= MAX_FILE_SIZE:
+            if lines_amount <= MAX_FILE_LINES:
                 self.files[file_name] += f"\n{content}"
             else:
                 if overwrite is True:
                     self.files[file_name] += f"\n{content}"
-                    self.files[file_name] = '\n'.join(self.files[file_name].splitlines()[lines_amount - MAX_FILE_SIZE:])
+                    self.files[file_name] = '\n'.join(self.files[file_name].splitlines()[lines_amount - MAX_FILE_LINES:])
 
                 return "Failed to add! Max file size reached."
         else:
@@ -243,6 +246,24 @@ class VM:
 
         return f"'{filename}' at {self.nick}({self.ip}):\n{self.files[filename]}"
 
+    def edit(self, filename: str, text: str) -> str:
+        
+        text = text.replace('\\n', '\n')
+        text = text.replace('\\s', ' ')
+        
+        if filename.endswith('.sys') is True:
+            return f'Access denied. Though, in case you need your text:\n\n{text}'
+        
+        if not filename in self.files.keys() and len(self.files.keys()) >= MAX_FILES:
+            return f'Max amount of files reached. Though, in case you need your text:\n\n{text}'
+        
+        if len(text) > MAX_FILE_SIZE:
+            return f'Too many characters to save... Though, in case you need your text:\n\n{text}'
+
+        self.files[filename] = text
+        
+        return 'File has been changed.'
+
     def whoami(self) -> str:
         return f"{self.nick} {self.ip}"
     
@@ -286,7 +307,7 @@ _______________________________________
 |{f'{self.wallet} [CV]':<12} {asctime(gmtime()):>24}|
 |=====================================|
 |{f'OS ({OS_LIST[self.os]}): {self.software["kernel"]}':^18}|{f'Miner: {self.software["miner"]}':^18}|
-|{f'AI: {self.software["AI"]}':^18}|{f'ssh: {self.software["ssh"]}':^18}|
+|{f'AI: {self.software["AI"]}':^18}|{f'SSH: {self.software["ssh"]}':^18}|
 |=====================================|
 | {f'BrutForce: {bf_state}':^16} | {f'AI: {ai_state}':^16} |
 |{               'Latest-Events':=^37}|
@@ -321,12 +342,12 @@ _______________________________________
             pass
 
     def list_updates(self) -> str:
-        output: str = ''
+        output: str = ' ID |  SOFTWARE  |  PRICE\n' + 28 * '=' + '\n'
         software_id: int = 0
 
         for software in MAX_SOFTWARE.keys():
             if self.software[software] < MAX_SOFTWARE[software]:
-                output += f'#{software_id} {software} {(self.software[software] + 1) * 100} CV\n'
+                output += f' {software_id:^2} | {software:^10} | {f"{(self.software[software] + 1) * 100} CV":^8}\n'
 
             software_id += 1
 

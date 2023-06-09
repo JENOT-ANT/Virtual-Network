@@ -5,9 +5,12 @@ from threading import Thread
 from Squad import RANKS, MAX_MEMBERS
 from VM import OS_LIST
 from random import randint
+from os import execl, chdir
+from os.path import dirname
+from sys import platform
 
 ADMIN: int = 997119789329825852
-ACTIVITY: str = '🐱‍💻 Hacking the Planet!'
+ACTIVITY: str = '🐱‍💻 Hacking The Planet!'
 MAX_NAME_LENGTH: int = 12
 
 
@@ -55,22 +58,22 @@ HACK_HELP: str = '''
 
 # HOW TO HACK? STEP BY STEP
     
-    1. **FIND THE TARGET**
-    > You have to obtain the IP address of the VM you want to hack. You can usually find it in `network.dump` file or (in any VM you have access to).
+## FIND THE TARGET
+  > You have to obtain the IP address of the VM you want to hack. You can usually find it in `network.dump` file or (in any VM you have access to).
     
-    2. **SCAN**
+## SCAN
 
-    3. **GET EXPLOIT**
+## GET EXPLOIT
 
-    4. **EXPLOIT**
-      - Kernel Exploit
-      - SSH Exploit
-      
-    5. **PROFITS**
+## EXPLOIT
+  - Kernel Exploit
+  - SSH Exploit
+
+## PROFITS
     
-    6. **FOOTPRINTS**
+## FOOTPRINTS
     
-    7. **PROXY**
+## PROXY
 
 '''
 
@@ -80,22 +83,40 @@ class Bot:
     network: Network
     cpu_loop: Thread
 
-    async def __ssh(self, cmd_text: str, cmd: discord.Interaction):
+    async def __ssh(self, cmd_text: str, cmd: discord.Interaction, edit_response: bool=False):
         ip: str
         port: int
         nick: str
+        original_message: discord.Message
+        answer: str
+        
+        
+        if edit_response is True:
+            original_message = await cmd.original_response()
+
 
         if not cmd.user.id in self.network.by_id.keys():
+            if edit_response is True:
+                await original_message.edit(content='You are not registered... Check `/register`')
+                return
+            
             await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
             return
         
+
         ip = self.network.by_id[cmd.user.id].ip
         port = self.network.by_id[cmd.user.id].port_config["ssh"]
         nick = self.network.by_id[cmd.user.id].nick
 
+
         self.network.direct_send((ip, port), (nick, None), cmd_text)
+        answer = self.network.ssh(self.network.by_id[cmd.user.id])
+
+        if edit_response is True:
+            await original_message.edit(content=self.__wrapped(answer, True))
+            return
         
-        await cmd.response.send_message(f'```js\n{self.network.ssh(self.network.by_id[cmd.user.id])}\n```', ephemeral=True)
+        await cmd.response.send_message(self.__wrapped(answer, True), ephemeral=True)
     
     def __log(self, cmd_function):
         @wraps(cmd_function)
@@ -141,6 +162,21 @@ class Bot:
                     if not role in roles:
                         await guild.create_role(name=role, permissions=discord.Permissions.none(), color=ROLES[role])
         
+        @self.client.event
+        async def on_message(message: discord.Message):
+            if message.author.id != ADMIN:
+                return
+            
+            if message.content.startswith('!update'):
+                pass
+            elif message.content.startswith('!restart') and not 'win' in platform:
+                self.network.running = False
+                self.cpu_loop.join()
+
+                chdir('../source-code')
+                execl('python3', 'main.py')
+                
+
         # @self.tree.command(name='mod')
         # async def mod(cmd: discord.Interaction, new_mod: discord.Member):
         #     '''Set the moderator status for the member.'''
@@ -252,7 +288,7 @@ class Bot:
             squad_list: str
             leader: str | None
             
-            squad_list = f"   squad name    |members| state | captain\n{'=' * 42}\n"
+            squad_list = f"  squad name |members| state | captain\n{'=' * 42}\n"
 
             for squad in self.network.squads.values():
                 leader = None
@@ -263,7 +299,7 @@ class Bot:
 
                 squad_list += f"{squad.name:^12} | {len(squad.members.keys()):2}/{MAX_MEMBERS} | {'open' if squad.recruting is True else 'close':5} | {leader}\n"
             
-            await cmd.response.send_message(self.__wrapped(squad_list), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(squad_list, True), ephemeral=True)
 
         @self.tree.command(name='join-squad')
         @self.__log
@@ -357,7 +393,7 @@ class Bot:
                 return
             
             await cmd.response.send_message(self.__wrapped(f'{ip_address}:\n\tnick: {self.network.by_ip[ip_address].nick}\n\tsquad: {self.network.by_ip[ip_address].squad}'), ephemeral=True)
-        
+
         @self.tree.command(name='-panel-')
         @self.__log
         async def panel(cmd: discord.Interaction):
@@ -399,6 +435,41 @@ class Bot:
             '''
             await self.__ssh(f'rm {file_name}', cmd)
 
+        @self.tree.command(name='-edit-')
+        @self.__log
+        async def edit(cmd: discord.Interaction, file_name: str):
+            '''
+            Edit text file on a VM. The old content of the file'll be deleted!
+            
+            Parameters
+            ----------
+            file_name : str
+                Name of the file to edit
+            '''
+
+            input_message: discord.Message
+            input_text: str
+
+            await cmd.response.send_message('Enter text:', ephemeral=True)
+
+            def check(message: discord.Message) -> bool:
+                if message.author.id != cmd.user.id:
+                    return False
+                
+                return True
+            
+            input_message = await self.client.wait_for('message', check=check)
+            input_text = input_message.content
+            
+            await input_message.delete()
+
+            input_text = input_text.replace('\n', '\\n')
+            input_text = input_text.replace(' ', '\\s')
+
+
+            await self.__ssh(f'edit {file_name} {input_text}', cmd, True)
+
+
         @self.tree.command(name='-ps-')
         @self.__log
         async def ps(cmd: discord.Interaction):
@@ -437,6 +508,15 @@ class Bot:
             '''
             await self.__ssh('passwd', cmd)
 
+        @self.tree.command(name='-ssh-')
+        @self.__log
+        async def ssh(cmd: discord.Interaction, ip_address: str, port: int, password: str):
+            '''
+            Not ready.
+            '''
+            await self.__ssh(f'ssh {ip_address} {port} {password}', cmd)
+
+
         @self.tree.command(name='--archives--')
         @self.__log
         async def archives(cmd: discord.Interaction):
@@ -446,7 +526,7 @@ class Bot:
                 await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
                 return
             
-            await cmd.response.send_message(self.__wrapped(self.network.by_id[cmd.user.id].archives()), ephemeral=True)
+            await cmd.response.send_message(self.__wrapped(self.network.by_id[cmd.user.id].archives(), True), ephemeral=True)
         
         @self.tree.command(name='--brute-force--')
         @self.__log
