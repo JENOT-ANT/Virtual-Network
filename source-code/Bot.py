@@ -5,15 +5,17 @@ from threading import Thread
 from Squad import RANKS, MAX_MEMBERS
 from VM import OS_LIST
 from random import randint
-from os import execl
+
+from os import execl, system
 from os.path import dirname
-from os import system
+from sys import executable
+
 from sys import platform
+
 
 ADMIN: int = 997119789329825852
 ACTIVITY: str = '🐱‍💻 Hacking The Planet!'
 MAX_NAME_LENGTH: int = 12
-
 
 ROLES: dict[str, discord.Color] = {
     'Captain': discord.Color.gold(),
@@ -77,6 +79,7 @@ HACK_HELP: str = '''
 ## PROXY
 
 '''
+
 
 class Bot:
     client: discord.Client
@@ -166,7 +169,7 @@ class Bot:
         @self.client.event
         async def on_message(message: discord.Message):
             # Linux server administartion commands:
-            
+
             if message.author.id != ADMIN or 'win' in platform:
                 return
             
@@ -177,8 +180,8 @@ class Bot:
                 self.network.running = False
                 self.cpu_loop.join()
 
-                execl('/bin/bash', '-c', 'python3', f'{dirname(__file__)}/main.py')
-                
+                #execl('/bin/bash', 'bash', '-c', f'reset; python3 {dirname(__file__)}/main.py')
+                execl(executable, 'python3', __file__)
 
         # @self.tree.command(name='mod')
         # async def mod(cmd: discord.Interaction, new_mod: discord.Member):
