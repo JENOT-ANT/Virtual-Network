@@ -1,10 +1,8 @@
 # TODO:
-#   2. Move args checking from method Server.__squads__ to start_ai
-#   3. Create error database
-#   4. Move file editing from ssh code to VM method
-#   6. Create some sort of API in the Squad class that would replace trash code like changing nick and other stuff in variety of places
-#   7. Change Server.__send__ method to add code embody optional
-#   8. (?) Move key filenames to some constants
+#   1. Create error database
+#   2. Create some sort of API in the Squad class that would replace trash code like changing nick and other stuff in variety of places
+#   3. (?) Move key filenames to some constants
+#   4. Split ssh to smaller functions
 
 import shelve
 import random
@@ -103,11 +101,11 @@ class Network:
         
         self.offers = []
 
-        self.__load__()
+        self._load()
 
         self.mods.append(admin_id)
 
-    def __load__(self):
+    def _load(self):
         exploits: list
         port_config: dict
         wallet: int
@@ -661,7 +659,8 @@ class Network:
         return "Scan started... Check > cat scan.txt to see the resoults."
     
     def vm_scan(self, vm: VM, process: Process):
-        answer: Packet
+        answer: Packet | None
+        target: VM
 
         if process.memory["recv"] == 0:
             process.memory["recv"] = 1
@@ -670,7 +669,9 @@ class Network:
                 self.direct_send((process.memory["ip"], port), (vm.ip, int(f"{port}{port}")), "ping")
 
         else:
-            vm.files["scan.txt"] = f"Target: {process.memory['ip']}\nOS: {OS_LIST[self.by_ip[process.memory['ip']].os]}\n{25 * '_'}\n\n\tPORT  ANSWER\n"
+            target = self.by_ip[process.memory['ip']]
+
+            vm.files["scan.txt"] = f"Target: {process.memory['ip']}\nKernel: {target.software['kernel']} ({OS_LIST[target.os]})\nSSH: {target.software['ssh']}\n{25 * '_'}\n\n\tPORT  ANSWER\n"
             
             # if "target.config" in vm.files.keys() and vm.files["target.config"].count('\n') == 0:
             #     vm.add("target.config", OS_LIST[self.by_ip[process.memory['ip']].os])
@@ -683,11 +684,11 @@ class Network:
                 
                 vm.files["scan.txt"] += f"\t{port:<2}:    {answer.content}\n{25 * '_'}"
             
-            print(vm.files["scan.txt"])
+            # print(vm.files["scan.txt"])
             process.name = "temp"
             process.code = ["exit", ]
 
-    def __generate_ip(self) -> str:
+    def _generate_ip(self) -> str:
         ip: str = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
         
         while ip in self.by_ip.keys() or ip == SYSTEM_IP:
@@ -695,7 +696,7 @@ class Network:
 
         return ip
 
-    def __generate_password(self) -> str:
+    def _generate_password(self) -> str:
         return "".join(choices(PASSWDS_ALPHABET, k=PASSWD_LENGHT))
     
     def update(self, dc_id: int, software_id: int) -> str:
@@ -747,7 +748,7 @@ class Network:
             return self.system_network.pop(port)
 
     def set_passwd(self, nick: str):
-        self.by_nick[nick].files["shadow.sys"] = md5(self.__generate_password().encode('ascii')).hexdigest()
+        self.by_nick[nick].files["shadow.sys"] = md5(self._generate_password().encode('ascii')).hexdigest()
 
     def change_nick(self, dc_id: int, new_nick: str) -> None:
         old_nick: str
@@ -817,7 +818,7 @@ class Network:
             sleep(FREQUENCY)
 
     def add_vm(self, nick: str, os: int, squad: str | None, user_id: int):
-        ip: str = self.__generate_ip()
+        ip: str = self._generate_ip()
         
         self.by_nick[nick] = VM(nick, squad, ip, user_id, os)
         self.by_ip[ip] = self.by_nick[nick]

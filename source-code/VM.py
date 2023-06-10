@@ -54,7 +54,7 @@ VM_HELP: str = """
     
     V- $ai <lvl> ---------------> generate random exploit of the level (lvl <= AI)
 
-    - $archives ---------------> [🗃] list owned exploits
+    V- $archives ---------------> [🗃] list owned exploits
 
     - $sell <id><price> -------> make an offer at the store for an exploit with the id
     
@@ -74,9 +74,9 @@ VM_HELP: str = """
   
   ## Hacking:
 
-    - > scan <IP> --------------> scan the IP for open ports and other details
+    V- > scan <IP> --------------> scan the IP for open ports and other details
 
-    - > exploit <IP><port><ID> -> run the exploit (with ID, check $archives first)
+    V- > exploit <IP><port><ID> -> run the exploit (with ID, check $archives first)
   
   ## Files:
 
@@ -88,13 +88,13 @@ VM_HELP: str = """
   
   ## SSH:
   
-    - > ssh <IP><port><passwd> -> connect to IP's VM (Virtual Machine)
+    V- > ssh <IP><port><passwd> -> connect to IP's VM (Virtual Machine)
     
     V- > whoami -----------------> display currently-logged user's nick and IP
   
     - > exit -------------------> close last ssh connection
   
-    - > proxy ------------------> display your ssh connection path
+    V- > proxy ------------------> display your ssh connection path
 
 """
 
