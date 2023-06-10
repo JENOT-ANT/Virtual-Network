@@ -181,7 +181,7 @@ class Bot:
                 self.cpu_loop.join()
 
                 #execl('/bin/bash', 'bash', '-c', f'reset; python3 {dirname(__file__)}/main.py')
-                execl(executable, 'python3', __file__)
+                execl(executable, 'python3', f'{dirname(__file__)}/main.py')
 
         # @self.tree.command(name='mod')
         # async def mod(cmd: discord.Interaction, new_mod: discord.Member):
