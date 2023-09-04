@@ -92,7 +92,7 @@ VM_HELP: str = """
     
     V- > whoami -----------------> display currently-logged user's nick and IP
   
-    - > exit -------------------> close last ssh connection
+    V- > exit -------------------> close last ssh connection
   
     V- > proxy ------------------> display your ssh connection path
 
