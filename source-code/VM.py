@@ -317,6 +317,9 @@ _______________________________________
 |_____________________________________|
         """
 
+    def get_wallet(self) -> str:
+        return f'Wallet at {self.nick}({self.ip}):\n\n{self.wallet} [CV]'
+
     def exit(self, client_ip: str):
         if client_ip != self.nick:
             self.logged_in.remove(client_ip)

@@ -399,6 +399,13 @@ class Bot:
 
             await self._ssh('panel', cmd)
         
+        @self.tree.command(name='-wallet-')
+        @self._log
+        async def wallet(cmd: discord.Interaction):
+            '''Display amount of CV on the currently logged-in account'''
+
+            await self._ssh('wallet', cmd)
+
         @self.tree.command(name='-ls-')
         @self._log
         async def ls(cmd: discord.Interaction):

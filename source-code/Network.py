@@ -415,6 +415,10 @@ class Network:
                 iosout = vm.dashboard()
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
             
+            elif args[0] == 'wallet':
+                iosout = vm.get_wallet()
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
+
             elif args[0] == "clear":
                 if len(args) != 2:
                     iosout = error(0, 1)
@@ -662,8 +666,8 @@ class Network:
         answer: Packet | None
         target: VM
 
-        if process.memory["recv"] == 0:
-            process.memory["recv"] = 1
+        if process.memory['recv'] == 0:
+            process.memory['recv'] = 1
             
             for port in range(1, 100):
                 self.direct_send((process.memory["ip"], port), (vm.ip, int(f"{port}{port}")), "ping")
