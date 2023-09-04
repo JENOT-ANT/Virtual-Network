@@ -227,9 +227,9 @@ class Network:
 
         if target_port != self.by_ip[target_ip].port_config["ssh"]:
             if target_port in self.by_ip[target_ip].port_config.values():
-                return "Error! Address responded with different protocol."
+                return "Error! Address responded with different protocol.\nAI hint: Scan the target to see on what port is SHH running."
             
-            return "Target didn't respond."
+            return "Target didn't respond.\nAI hint: Scan the target to see on what port is SHH running."
 
         if secret == None:
             secret = str(attacker.exploits[exploit_id].secret)
@@ -660,7 +660,7 @@ class Network:
         vm.cpu[len(vm.cpu) - 1].memory["ip"] = target_ip
         vm.cpu[len(vm.cpu) - 1].memory["recv"] = 0
 
-        return "Scan started... Check > cat scan.txt to see the resoults."
+        return "Scanning... Check 'scan.txt' file to see the resoults."
     
     def vm_scan(self, vm: VM, process: Process):
         answer: Packet | None

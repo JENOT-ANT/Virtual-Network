@@ -242,7 +242,7 @@ class VM:
 
     def cat(self, filename: str) -> str:
         if not filename in self.files.keys():
-            return "Error! File not found."
+            return "Error! File not found.\nAI hint: Try -ls- cmd to list files."
 
         return f"'{filename}' at {self.nick}({self.ip}):\n{self.files[filename]}"
 

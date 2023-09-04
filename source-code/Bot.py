@@ -577,7 +577,7 @@ class Bot:
 
         @self.tree.command(name='-exploit-')
         @self._log
-        async def exploit(cmd: discord.Interaction, ip: str | None = None, port: int = 22, exploit_id: int | None = None):
+        async def exploit(cmd: discord.Interaction, ip: str, port: int, exploit_id: int):
             '''
             Run the exploit with specified ID, against the target by given IP
             
@@ -591,15 +591,7 @@ class Bot:
                 ID of the exploit to run (check your exploit-list using `--archives--` cmd)
             '''
             
-            if ip is None or exploit_id is None:
-                if not cmd.user.id in self.network.by_id.keys():
-                    await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
-                    return
-            
-                await cmd.response.send_message(self._wrapped(self.network.by_id[cmd.user.id].archives(), True), ephemeral=True)
-            
-            else:
-                await self._ssh(f'exploit {ip} {port} {exploit_id}', cmd)
+            await self._ssh(f'exploit {ip} {port} {exploit_id}', cmd)
 
         @self.tree.command(name='-scan-')
         @self._log
