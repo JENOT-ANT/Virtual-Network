@@ -458,7 +458,7 @@ class Bot:
             await self._ssh(f'cat {file_name}', cmd)
             
             response = await cmd.original_response()
-            await response.edit(content=response.content + '\n```\n====================\nEnter new text (copy old contents if needed!!!):```')
+            await response.edit(content=response.content + '\n\n**====================**\n`Enter new text (copy old contents if needed!!!):`')
             # await cmd.response.send_message('Enter new text (copy old contents if needed!!!):', ephemeral=True)
 
             def check(message: discord.Message) -> bool:
