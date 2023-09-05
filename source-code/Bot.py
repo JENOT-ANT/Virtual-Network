@@ -451,11 +451,15 @@ class Bot:
             file_name : str
                 Name of the file to edit
             '''
-
+            response: discord.Message
             input_message: discord.Message
             input_text: str
 
-            await cmd.response.send_message(f'{self._ssh(f"ls {file_name}", cmd)}\n====================\nEnter new text (copy old if needed):', ephemeral=True)
+            await self._ssh(f'cat {file_name}', cmd)
+            
+            response = await cmd.original_response()
+            await response.edit(content=response.content + '\n====================\nEnter new text (copy old contents if needed!!!):')
+            # await cmd.response.send_message('Enter new text (copy old contents if needed!!!):', ephemeral=True)
 
             def check(message: discord.Message) -> bool:
                 if message.author.id != cmd.user.id:
