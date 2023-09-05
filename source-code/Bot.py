@@ -455,7 +455,7 @@ class Bot:
             input_message: discord.Message
             input_text: str
 
-            await cmd.response.send_message('Enter text:', ephemeral=True)
+            await cmd.response.send_message(f'{self._ssh(f"ls {file_name}", cmd)}\n====================\nEnter new text (copy old if needed):', ephemeral=True)
 
             def check(message: discord.Message) -> bool:
                 if message.author.id != cmd.user.id:
@@ -575,6 +575,19 @@ class Bot:
             '''
             await cmd.response.send_message(self._wrapped(self.network.start_ai(cmd.user.id, lvl)), ephemeral=True)
 
+        @self.tree.command(name='--sshcfg--')
+        @self._log
+        async def sshcfg(cmd: discord.Interaction, port: int):
+            '''
+            Change the port that your VM's SSH is served on
+
+            Parameters
+            ----------
+            port : str
+                Port that your SSH service will be up
+            '''
+
+        
         @self.tree.command(name='-exploit-')
         @self._log
         async def exploit(cmd: discord.Interaction, ip: str, port: int, exploit_id: int):

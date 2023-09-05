@@ -225,7 +225,7 @@ class Network:
         if exploit_id >= len(attacker.exploits):
             return "Error! Exploit not found."
 
-        if target_port != self.by_ip[target_ip].port_config["ssh"]:
+        if target_port != self.by_ip[target_ip].port_config['ssh']:
             if target_port in self.by_ip[target_ip].port_config.values():
                 return "Error! Address responded with different protocol.\nAI hint: Scan the target to see on what port is SHH running."
             
@@ -295,8 +295,8 @@ class Network:
 
         packet = self.recv(vm.port_config["ssh"], vm)
         
-        if packet == None:
-            return "Error! Connection refused."
+        # if packet == None:
+        #     return "Error! Connection refused."
         
         args = packet.content.split()
 
@@ -626,7 +626,7 @@ class Network:
         guess: str = ""
         principle: int
         
-        principle = process.memory["principle"]
+        principle = process.memory['principle']
 
         if principle > MAX_GUESS:
             vm.add_to_log("Bruteforce failed.")
@@ -683,7 +683,7 @@ class Network:
             for port in range(1, 100):
                 answer = self.recv(int(f"{port}{port}"), vm)
                 
-                if answer == None:
+                if answer.content == '':
                     continue
                 
                 vm.files["scan.txt"] += f"\t{port:<2}:    {answer.content}\n{25 * '_'}"
@@ -739,10 +739,10 @@ class Network:
         
         return content
 
-    def recv(self, port: int, vm: None|VM=None) -> Packet | None:
+    def recv(self, port: int, vm: None|VM=None) -> Packet:
         if vm != None:
             if not port in vm.network.keys():
-                return None#Packet((SYSTEM_IP, 1), 'Critical Network Error!')
+                return Packet((SYSTEM_IP, 1), '')
 
             return vm.network.pop(port)
         else:
