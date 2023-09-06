@@ -295,8 +295,8 @@ class Network:
 
         packet = self.recv(vm.port_config["ssh"], vm)
         
-        # if packet == None:
-        #     return "Error! Connection refused."
+        if packet.content == '':
+            return "Error! Connection refused."
         
         args = packet.content.split()
 
