@@ -20,17 +20,36 @@ class Squad:
 
     def __init__(self, name: str, members: dict, recruting: bool):
         self.name = name
-        self.members = members
+        self.members = {}
         self.recruting = recruting
 
-    def add_member(self, nick: str, rank: str='Apprentice'):
-        self.members[nick] = RANKS[rank]
+        for member in members:
+            self.members[member] = members[member]
 
-    def promote(self, nick: str):
-        ...
+    def add_member(self, nick: str) -> bool:
+        if len(self.members) >= MAX_MEMBERS or self.recruting is False:
+            return False
         
-    def demote(self, nick: str):
-        ...
+        self.members[nick] = RANKS['Apprentice']
+        return True
+
+    def promote(self, operator: str, nick: str) -> bool:
+        if not nick in self.members or self.members[nick] + 1 > RANKS['Captain'] or self.members[operator] <= self.members[nick]:
+            return False
+        
+        self.members[nick] += 1 
+        return True
+        
+    def demote(self, operator: str, nick: str) -> bool:
+        if not nick in self.members or self.members[operator] <= self.members[nick]:
+            return False
+        
+        if self.members[nick] > RANKS['Apprentice']:
+            self.members[nick] -= 1
+        else:
+            self.members.pop(nick)
+
+        return True
 
     def panel(self) -> str:
         output: str

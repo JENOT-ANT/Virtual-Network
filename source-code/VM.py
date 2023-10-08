@@ -31,7 +31,7 @@ DEFAULT_SOFTWARE: dict = {
 # ports < 10 are not allowed
 # ports > 1000 are not allowed, they are for responding connections, np. respond from ssh: 2222, from http: 8080, etc.
 DEFAULT_PORT_CONFIG: dict = {
-    "http": 80,
+    # "http": 80,
     "ssh": 22,
 }
 
@@ -227,7 +227,6 @@ class VM:
         
         return output
         
-
     def ls(self) -> str:
         # files: str = '\n'.join(list(self.files.keys()))
         files: str = ""

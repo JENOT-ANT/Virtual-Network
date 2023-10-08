@@ -131,6 +131,17 @@ class Bot:
         
         return log
 
+    def _account_required(self, cmd_function):
+        @wraps(cmd_function)
+        async def login_check(*args, **kwargs):
+            if not args[0].user.id in self.network.by_id:
+                await args[0].response.send_message('I\'m almost sure, you don\'t have an account yet...', ephemeral=True)
+                return
+
+            return await cmd_function(*args, **kwargs)
+
+        return login_check
+
     def _wrapped(self, text: str, color: bool=False):
         return f'```{"js" if color is True else ""}\n{text}\n```'
 
@@ -301,6 +312,7 @@ class Bot:
 
         @self.tree.command(name='join-squad')
         @self._log
+        @self._account_required
         async def join_squad(cmd: discord.Interaction, squad_name: str):
             '''
             Join a squad that is recruiting
@@ -310,10 +322,10 @@ class Bot:
             squad_name : str
                 Name of the squad you want to join
             '''
-
-            if not cmd.user.id in self.network.by_id.keys():
-                await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
-                return
+            
+            # if not cmd.user.id in self.network.by_id.keys():
+            #     await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
+            #     return
             if not squad_name in self.network.squads.keys():
                 await cmd.response.send_message('There is no squad with such a name.', ephemeral=True)
                 return
@@ -321,24 +333,21 @@ class Bot:
                 await cmd.response.send_message('Your current squad needs you!', ephemeral=True)
                 return
 
-            self.network.join_squad(cmd.user.id, squad_name)
-            
-            if cmd.guild != None:
-                for role in cmd.guild.roles:
-                    if role.name == 'Apprentice':
-                        await cmd.user.add_roles(role)
-            
-            await cmd.response.send_message(f'{cmd.user.mention} Welcome to **{squad_name}**! Contact the squad captain to get access to a private-channel/thread of your squad.')
+            if self.network.join_squad(cmd.user.id, squad_name) is True:
+                await cmd.response.send_message(f'{cmd.user.mention} Welcome to **{squad_name}**! Contact the squad captain to get access to a private-channel/thread of your squad.')
+            else:
+                await cmd.response.send_message(f'Sorry, the **{squad_name}** is full or not reqruiting...', ephemeral=True)
 
         @self.tree.command(name='squad-panel')
         @self._log
+        @self._account_required
         async def squad_panel(cmd: discord.Interaction):
             '''Display basic info about your squad'''
             squad_name: str | None
 
-            if not cmd.user.id in self.network.by_id.keys():
-                await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
-                return
+            # if not cmd.user.id in self.network.by_id.keys():
+            #     await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
+            #     return
             
             squad_name = self.network.by_id[cmd.user.id].squad
             
@@ -348,8 +357,29 @@ class Bot:
             
             await cmd.response.send_message(self._wrapped(self.network.squads[squad_name].panel(), True), ephemeral=True)
 
+        @self.tree.command(name='promote')
+        @self._log
+        @self._account_required
+        async def promote(cmd: discord.Interaction, nick: str):
+            
+            if self.network.promote(cmd.user.id, nick) is True:
+                await cmd.response.send_message(f'**{nick}** was promoted.', ephemeral=True)
+            else:
+                await cmd.response.send_message('You can\'t promote this member.', ephemeral=True)
+
+        
+        @self.tree.command(name='demote')
+        @self._log
+        @self._account_required
+        async def demote(cmd: discord.Interaction, nick: str):
+            if self.network.promote(cmd.user.id, nick) is True:
+                await cmd.response.send_message(f'**{nick}** was demoted.', ephemeral=True)
+            else:
+                await cmd.response.send_message('You can\'t demote this member.', ephemeral=True)
+
         @self.tree.command(name='rename')
         @self._log
+        @self._account_required
         async def rename(cmd: discord.Interaction, new_nick: str):
             '''
             Change in-game nickname
@@ -360,9 +390,9 @@ class Bot:
                 Your new in-game nick to set up
             '''
 
-            if not cmd.user.id in self.network.by_id.keys():
-                await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
-                return
+            # if not cmd.user.id in self.network.by_id.keys():
+            #     await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
+            #     return
 
             if new_nick in self.network.by_nick.keys():
                 await cmd.response.send_message('Nick already in use.', ephemeral=True)

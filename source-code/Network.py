@@ -6,7 +6,7 @@
 
 import shelve
 import random
-from Squad import Squad
+from Squad import Squad, RANKS
 from VM import VM, Packet, OS_LIST, EXPLOITS, Exploit, MAX_SOFTWARE, Process
 from hashlib import md5
 from random import randint, choices
@@ -771,6 +771,15 @@ class Network:
         if squad_name != None:
             self.squads[squad_name].members[new_nick] = self.squads[squad_name].members.pop(old_nick)
 
+    def add_vm(self, nick: str, os: int, squad: str | None, user_id: int):
+        ip: str = self._generate_ip()
+        
+        self.by_nick[nick] = VM(nick, squad, ip, user_id, os)
+        self.by_ip[ip] = self.by_nick[nick]
+        self.by_id[user_id] = self.by_nick[nick]
+
+        self.set_passwd(nick)
+
     def cpu_loop(self):
         cmd: list[str]
         name: str
@@ -821,22 +830,35 @@ class Network:
 
             sleep(FREQUENCY)
 
-    def add_vm(self, nick: str, os: int, squad: str | None, user_id: int):
-        ip: str = self._generate_ip()
-        
-        self.by_nick[nick] = VM(nick, squad, ip, user_id, os)
-        self.by_ip[ip] = self.by_nick[nick]
-        self.by_id[user_id] = self.by_nick[nick]
 
-        self.set_passwd(nick)
+    def join_squad(self, dc_id: int, squad: str) -> bool:
         
-    def join_squad(self, dc_id: int, squad: str, rank: str='Apprentice'):
-        self.squads[squad].add_member(self.by_id[dc_id].nick, rank)
-        self.by_id[dc_id].squad = squad
+        if self.squads[squad].add_member(self.by_id[dc_id].nick) is True:
+            self.by_id[dc_id].squad = squad
+            return True
+        
+        return False
 
     def add_squad(self, name: str, captain_id: int):
-        self.squads[name] = Squad(name, {}, True)
-        self.join_squad(captain_id, name, 'Captain')
+        self.by_id[captain_id].squad = name
+        self.squads[name] = Squad(name, {self.by_id[captain_id].nick: RANKS['Captain']}, True)
+
+    def promote(self, operator_id: int, nick: str) -> bool:
+        operator: VM = self.by_id[operator_id]
+
+        if operator.squad == None:
+            return False
+        
+        return self.squads[operator.squad].promote(operator.nick, nick)
+    
+    def demote(self, operator_id: int, nick: str) -> bool:
+        operator: VM = self.by_id[operator_id]
+
+        if operator.squad == None:
+            return False
+        
+        return self.squads[operator.squad].demote(operator.nick, nick)
+
 
     def save(self):
         db: shelve.Shelf
