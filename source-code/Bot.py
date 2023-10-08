@@ -372,7 +372,7 @@ class Bot:
         @self._log
         @self._account_required
         async def demote(cmd: discord.Interaction, nick: str):
-            if self.network.promote(cmd.user.id, nick) is True:
+            if self.network.demote(cmd.user.id, nick) is True:
                 await cmd.response.send_message(f'**{nick}** was demoted.', ephemeral=True)
             else:
                 await cmd.response.send_message('You can\'t demote this member.', ephemeral=True)
