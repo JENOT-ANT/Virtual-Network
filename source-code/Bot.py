@@ -1,5 +1,6 @@
 from functools import wraps
 import discord
+from discord.interactions import Interaction
 from Network import Network
 from threading import Thread
 from Squad import RANKS, MAX_MEMBERS
@@ -80,6 +81,9 @@ HACK_HELP: str = '''
 
 '''
 
+class Form(discord.ui.Modal, title='Check this out!'):
+    name = discord.ui.TextInput(label='test', style=discord.TextStyle.paragraph, default='Is it working\nlike that?')
+
 
 class Bot:
     client: discord.Client
@@ -87,40 +91,36 @@ class Bot:
     network: Network
     cpu_loop: Thread
 
-    async def _ssh(self, cmd_text: str, cmd: discord.Interaction, edit_response: bool=False):
-        ip: str
-        port: int
-        nick: str
-        original_message: discord.Message
-        answer: str
-        
-        
-        if edit_response is True:
-            original_message = await cmd.original_response()
-
-
-        if not cmd.user.id in self.network.by_id.keys():
-            if edit_response is True:
-                await original_message.edit(content='You are not registered... Check `/register`')
-                return
-            
-            await cmd.response.send_message('You are not registered... Check `/register`', ephemeral=True)
-            return
-        
-
-        ip = self.network.by_id[cmd.user.id].ip
-        port = self.network.by_id[cmd.user.id].port_config["ssh"]
-        nick = self.network.by_id[cmd.user.id].nick
-
+    def _ssh_network_wrapper(self, cmd_text: str, user_id: int) -> str:
+        ip: str = self.network.by_id[user_id].ip
+        port: int = self.network.by_id[user_id].port_config['ssh']
+        nick: str = self.network.by_id[user_id].nick
 
         self.network.direct_send((ip, port), (nick, None), cmd_text)
-        answer = self.network.ssh(self.network.by_id[cmd.user.id])
-
-        if edit_response is True:
-            await original_message.edit(content=self._wrapped(answer, True))
-            return
         
-        await cmd.response.send_message(self._wrapped(answer, True), ephemeral=True)
+        return self.network.ssh(self.network.by_id[user_id])
+
+    async def _ssh(self, cmd_text: str, cmd: discord.Interaction):
+        gui: discord.ui.View
+        button: discord.ui.Button
+        
+        
+        gui = discord.ui.View()
+
+        button = discord.ui.Button(emoji='📟', style=discord.ButtonStyle.blurple)
+        button.callback = lambda interaction: self._ssh('panel', interaction)
+        gui.add_item(button)
+
+        button = discord.ui.Button(emoji='📁', style=discord.ButtonStyle.blurple)
+        button.callback = lambda interaction: self._ssh('ls', interaction)
+        gui.add_item(button)
+
+        button = discord.ui.Button(emoji='🛑', style=discord.ButtonStyle.blurple)
+        button.callback = lambda interaction: self._ssh('exit', interaction)
+        gui.add_item(button)
+
+
+        await cmd.response.send_message(self._wrapped(self._ssh_network_wrapper(cmd_text, cmd.user.id), True), ephemeral=True, view=gui)
     
     def _log(self, cmd_function):
         @wraps(cmd_function)
@@ -196,6 +196,10 @@ class Bot:
                 #execl('/bin/bash', 'bash', '-c', f'reset; python3 {dirname(__file__)}/main.py')
                 execl(executable, 'python3', f'{dirname(__file__)}/main.py')
 
+        @self.client.event
+        async def on_reaction_add(reaction: discord.Reaction, user: discord.User):
+            return
+            
 
         @self.tree.command(name='close')
         @self._log
@@ -296,17 +300,19 @@ class Bot:
 
             squad_list: str
             leader: str | None
+            state: str
             
-            squad_list = f"  squad name |members| state | captain\n{'=' * 42}\n"
+            squad_list = f" squad name |   state   | captain\n{'=' * 37}\n"
 
             for squad in self.network.squads.values():
                 leader = None
                 for member in squad.members.keys():
-                    if squad.members[member] == RANKS["Captain"]:
+                    if squad.members[member] == RANKS['Captain']:
                         leader = member
                         break
-
-                squad_list += f"{squad.name:^12} | {len(squad.members.keys()):2}/{MAX_MEMBERS} | {'open' if squad.recruting is True else 'close':5} | {leader}\n"
+                
+                state = 'open' if squad.recruting is True else 'close'
+                squad_list += f'{squad.name:^12}|{f"{len(squad.members.keys()):2}/{MAX_MEMBERS}<{state}":<11}| {leader}\n'
             
             await cmd.response.send_message(self._wrapped(squad_list, True), ephemeral=True)
 
@@ -417,13 +423,14 @@ class Bot:
                 IP address to resolve
             '''
             if not ip_address in self.network.by_ip.keys():
-                await cmd.response.send_message("IP address not found.", ephemeral=True)
+                await cmd.response.send_message('IP address not found.', ephemeral=True)
                 return
             
             await cmd.response.send_message(self._wrapped(f'{ip_address}:\n\tnick: {self.network.by_ip[ip_address].nick}\n\tsquad: {self.network.by_ip[ip_address].squad}'), ephemeral=True)
 
         @self.tree.command(name='-panel-')
         @self._log
+        @self._account_required
         async def panel(cmd: discord.Interaction):
             '''Display dashboard with info about the VM of currently logged-in user'''
 
@@ -431,6 +438,7 @@ class Bot:
         
         @self.tree.command(name='-wallet-')
         @self._log
+        @self._account_required
         async def wallet(cmd: discord.Interaction):
             '''Display amount of CV on the currently logged-in account'''
 
@@ -438,6 +446,7 @@ class Bot:
 
         @self.tree.command(name='-ls-')
         @self._log
+        @self._account_required
         async def ls(cmd: discord.Interaction):
             '''List files of currently logged-in user'''
 
@@ -445,6 +454,7 @@ class Bot:
         
         @self.tree.command(name='-cat-')
         @self._log
+        @self._account_required
         async def cat(cmd: discord.Interaction, file_name: str) -> None:
             '''
             Display content of the file
@@ -459,6 +469,7 @@ class Bot:
 
         @self.tree.command(name='-rm-')
         @self._log
+        @self._account_required
         async def rm(cmd: discord.Interaction, file_name: str) -> None:
             '''
             Remove the file from currently logged-in user
@@ -472,45 +483,35 @@ class Bot:
 
         @self.tree.command(name='-edit-')
         @self._log
+        @self._account_required
         async def edit(cmd: discord.Interaction, file_name: str):
             '''
-            Edit or create a text file on a VM. The old content of the file'll be deleted!
+            Edit or create a text file on a VM.
             
             Parameters
             ----------
             file_name : str
-                Name of the file to edit
+                Name of the file to edit / create
             '''
-            response: discord.Message
-            input_message: discord.Message
-            input_text: str
-
-            await self._ssh(f'cat {file_name}', cmd)
+            ssh_method = self._ssh
             
-            response = await cmd.original_response()
-            await response.edit(content=response.content + '\n**====================**\n`Enter new text (copy old contents if needed!!!):`')
-            # await cmd.response.send_message('Enter new text (copy old contents if needed!!!):', ephemeral=True)
+            class Editor(discord.ui.Modal, title=file_name):
+                text_box = discord.ui.TextInput(label='File Editor', style=discord.TextStyle.paragraph, default='\n'.join(self._ssh_network_wrapper(f'cat {file_name}', cmd.user.id).splitlines()[1:]))
 
-            def check(message: discord.Message) -> bool:
-                if message.author.id != cmd.user.id:
-                    return False
-                
-                return True
-            
-            input_message = await self.client.wait_for('message', check=check)
-            input_text = input_message.content
-            
-            await input_message.delete()
+                async def on_submit(self, submit: discord.Interaction) -> None:                   
+                    input_text: str
 
-            input_text = input_text.replace('\n', '\\n')
-            input_text = input_text.replace(' ', '\\s')
+                    input_text = str(self.text_box)
+                    input_text = input_text.replace('\n', '\\n')
+                    input_text = input_text.replace(' ', '\\s')
 
+                    await ssh_method(f'edit {file_name} {input_text}', submit)
 
-            await self._ssh(f'edit {file_name} {input_text}', cmd, True)
-
+            await cmd.response.send_modal(Editor())
 
         @self.tree.command(name='-ps-')
         @self._log
+        @self._account_required
         async def ps(cmd: discord.Interaction):
             '''Display currently running processes'''
 
@@ -518,12 +519,14 @@ class Bot:
         
         @self.tree.command(name='-whoami-')
         @self._log
+        @self._account_required
         async def whoami(cmd: discord.Interaction):
             '''Display currently-logged user's nick and IP'''
             await self._ssh('whoami', cmd)
 
         @self.tree.command(name='-transfer-')
         @self._log
+        @self._account_required
         async def transfer(cmd: discord.Interaction, nick: str, amount: int):
             '''
             Transfer CV from currntly logged-in accunt to the account under the game-nick
@@ -541,6 +544,7 @@ class Bot:
 
         @self.tree.command(name='-passwd-')
         @self._log
+        @self._account_required
         async def passwd(cmd: discord.Interaction):
             '''
             Generate new password for the currently logged-in VM
@@ -549,6 +553,7 @@ class Bot:
 
         @self.tree.command(name='-ssh-')
         @self._log
+        @self._account_required
         async def ssh(cmd: discord.Interaction, ip_address: str, port: int, password: str):
             '''
             Connect to remote VM (Virtual Machine)
@@ -569,6 +574,7 @@ class Bot:
 
         @self.tree.command(name='--archives--')
         @self._log
+        @self._account_required
         async def archives(cmd: discord.Interaction):
             '''List owned exploits'''
 
@@ -580,6 +586,7 @@ class Bot:
         
         @self.tree.command(name='--brute-force--')
         @self._log
+        @self._account_required
         async def bf(cmd: discord.Interaction, passwd_hash: str):
             '''
             Brutforce the hash to find the password corresponding to it
@@ -598,6 +605,7 @@ class Bot:
 
         @self.tree.command(name='--ai--')
         @self._log
+        @self._account_required
         async def ai(cmd: discord.Interaction, lvl: int):
             '''
             Generate random-power exploit of the level specified
@@ -611,6 +619,7 @@ class Bot:
 
         @self.tree.command(name='--sshcfg--')
         @self._log
+        @self._account_required
         async def sshcfg(cmd: discord.Interaction, port: int):
             '''
             Change the port that your VM's SSH is served on
@@ -624,6 +633,7 @@ class Bot:
         
         @self.tree.command(name='-exploit-')
         @self._log
+        @self._account_required
         async def exploit(cmd: discord.Interaction, ip: str, port: int, exploit_id: int):
             '''
             Run the exploit with specified ID, against the target by given IP
@@ -642,6 +652,7 @@ class Bot:
 
         @self.tree.command(name='-scan-')
         @self._log
+        @self._account_required
         async def scan(cmd: discord.Interaction, target_ip: str):
             '''
             Scan given IP for open ports and other details
@@ -655,6 +666,7 @@ class Bot:
 
         @self.tree.command(name='-exit-')
         @self._log
+        @self._account_required
         async def exit(cmd: discord.Interaction):
             '''
             Close the last ssh connection (check `/-proxy-` cmd)
@@ -664,6 +676,7 @@ class Bot:
         
         @self.tree.command(name='-proxy-')
         @self._log
+        @self._account_required
         async def proxy(cmd: discord.Interaction):
             '''
             Display your SSH connection path (VMs that you are connected to)
@@ -673,6 +686,7 @@ class Bot:
 
         @self.tree.command(name='--update--')
         @self._log
+        @self._account_required
         async def update(cmd: discord.Interaction, package_id: int | None=None):
             '''
             Update software of your VM. List possible updates and prices by not specifying the `package_id` parameter

@@ -4,11 +4,8 @@ from random import randint
 from uuid import uuid4, UUID
 
 
-OS_LIST: tuple[str, ...] = ("Penguin", "Parrot", "Racoon", "Turtle", )
-EXPLOITS: tuple[str, ...] = ("kernel", "ssh", )
-# EXPLOIT: dict = {
-#     "secret": 4,
-# }
+OS_LIST: tuple[str, ...] = ('Penguin', 'Parrot', 'Racoon', 'Turtle', )
+EXPLOITS: tuple[str, ...] = ('kernel', 'ssh', )
 
 MAX_SOFTWARE: dict[str, int] = {
     "miner": 26,
@@ -20,10 +17,10 @@ MAX_SOFTWARE: dict[str, int] = {
 }
 
 DEFAULT_SOFTWARE: dict = {
-    "miner": 1,
-    "AI": 1,
-    "kernel": 1,
-    "ssh": 1,
+    'miner': 1,
+    'AI': 1,
+    'kernel': 1,
+    'ssh': 1,
     #"http": 1,
     #"dns": 0,
 }
@@ -31,14 +28,14 @@ DEFAULT_SOFTWARE: dict = {
 # ports < 10 are not allowed
 # ports > 1000 are not allowed, they are for responding connections, np. respond from ssh: 2222, from http: 8080, etc.
 DEFAULT_PORT_CONFIG: dict = {
-    # "http": 80,
-    "ssh": 22,
+    # 'http': 80,
+    'ssh': 22,
 }
 
 DEFAULT_FILES: dict = {
-    "log.sys": "VM Created, Welcome!\n",
-    "shadow.sys": md5("admin".encode('ascii')).hexdigest(),
-    "network.dump": "-- Network Traffic --",
+    'log.sys': 'VM Created, Welcome!\n',
+    'shadow.sys': md5('admin'.encode('ascii')).hexdigest(),
+    'network.dump': '-- Network Traffic --',
 }
 
 VM_HELP: str = """
@@ -169,7 +166,7 @@ class VM:
     exploits: list[Exploit] # list[tuple[int, int, int, int, int]] = None # [(category<EXPLOITS>, lvl, os<OS_LIST>, success_rate<50-80>, secret<0-100>[to prevent unpriviliged useage])]
 
     network: dict[int, Packet]
-    netout: list[Packet]
+    netout: list[Packet] # For futhure use...
     cpu: list[Process]
 
     port_config: dict# {software: port}
@@ -241,7 +238,7 @@ class VM:
 
     def cat(self, filename: str) -> str:
         if not filename in self.files.keys():
-            return "Error! File not found.\nAI hint: Try -ls- cmd to list files."
+            return 'Error! File not found. AI hint: Try -ls- cmd to list files.'
 
         return f"'{filename}' at {self.nick}({self.ip}):\n{self.files[filename]}"
 
@@ -267,22 +264,22 @@ class VM:
         return f"{self.nick} {self.ip}"
     
     def archives(self) -> str:
-        output: str = " ID |   TYPE   | LVL |    OS    | SUCCESS\n=========================================\n"
+        output: str = " ID |  TYPE  | LVL |   OS    | SUCCESS\n======================================\n"
 
         for i in range(0, len(self.exploits)):
             # output += f"{i:^4}|{EXPLOITS[self.exploits[i][0]]:^10}|{self.exploits[i][1]:^5}|{OS_LIST[self.exploits[i][2]]:^10}|{f'{self.exploits[i][3]} %':^10}\n"
-            output += f"{i:^4}|{EXPLOITS[self.exploits[i].category]:^10}|{self.exploits[i].lvl:^5}|{OS_LIST[self.exploits[i].os]:^10}|{f'{self.exploits[i].success_rate} %':^10}\n"
+            output += f"{i:^4}|{EXPLOITS[self.exploits[i].category]:^8}|{self.exploits[i].lvl:^5}|{OS_LIST[self.exploits[i].os]:^9}|{f'{self.exploits[i].success_rate} %':^9}\n"
 
         return output
 
     def dashboard(self) -> str:
-        lines: list = self.files["log.sys"].splitlines()
+        lines: list = self.files['log.sys'].splitlines()
         lines_amount: int = len(lines)
         line1: str = ''
         line2: str = ''
         line3: str = ''
-        bf_state: str = "off"
-        ai_state: str = "off"
+        bf_state: str = 'OFF'
+        ai_state: str = 'OFF'
         
         if lines_amount >= 1:
             line1 = lines[lines_amount - 3][20:56]
@@ -292,28 +289,28 @@ class VM:
             line3 = lines[lines_amount - 1][20:56]
         
         for process in self.cpu:
-            if process.name == "bf":
-                bf_state = "on"
+            if process.name == 'bf':
+                bf_state = 'ON'
 
         for process in self.cpu:
-            if process.name == "ai":
-                ai_state = "on"
+            if process.name == 'ai':
+                ai_state = 'ON'
 
         return f"""
-_______________________________________
-|>{                self.whoami():^35}<|
-|-------------------------------------|
-|{f'{self.wallet} [CV]':<12} {asctime(gmtime()):>24}|
-|=====================================|
-|{f'OS ({OS_LIST[self.os]}): {self.software["kernel"]}':^18}|{f'Miner: {self.software["miner"]}':^18}|
-|{f'AI: {self.software["AI"]}':^18}|{f'SSH: {self.software["ssh"]}':^18}|
-|=====================================|
-| {f'BrutForce: {bf_state}':^16} | {f'AI: {ai_state}':^16} |
-|{               'Latest-Events':=^37}|
-|{                          line1:^37}|
-|{                          line2:^37}|
-|{                          line3:^37}|
-|_____________________________________|
+___________________________________
+|>{            self.whoami():^31}<|
+|---------------------------------|
+| {f'{self.wallet} [CV]':<10} {f"OS: {OS_LIST[self.os]}":^14} {f'{gmtime().tm_hour:0>2}:{gmtime().tm_min:0>2}':>5} |
+|=================================|
+| {f'Kernel: {self.software["kernel"]}':^14} | {f'Miner: {self.software["miner"]}':^14} |
+| {f'AI: {self.software["AI"]}':^14} | {f'SSH: {self.software["ssh"]}':^14} |
+|=================================|
+| {f'BrutForce: {bf_state}':^14} | {f'AI: {ai_state}':^14} |
+|{           'Latest-Events':=^33}|
+|{                      line1:^33}|
+|{                      line2:^33}|
+|{                      line3:^33}|
+|_________________________________|
         """
 
     def get_wallet(self) -> str:
@@ -331,16 +328,16 @@ _______________________________________
                 self.logged_in.pop(i)
                 counter += 1
         
-        return f"{counter} connection(s) closed."
+        return f'{counter} connection(s) closed.'
 
     def execute(self, pid: int) -> None:
         cmd = self.cpu[pid].cmd()
 
-        if cmd[0] == "echo":
+        if cmd[0] == 'echo':
             for arg in cmd[1:]:
                 pass
         
-        elif cmd[0] == "pass":
+        elif cmd[0] == 'pass':
             pass
 
     def list_updates(self) -> str:
@@ -368,7 +365,7 @@ _______________________________________
         self.port_config = port_config
         
         
-        self.cpu = [Process("miner", "pass"), Process("ssh", "pass")]
+        self.cpu = [Process('miner', 'pass'), Process('ssh', 'pass')]
         self.network = {}
         self.netout = []
         self.logged_in = [nick, ]
@@ -382,7 +379,7 @@ _______________________________________
             if not file_name in self.files.keys():
                 self.files[file_name] = DEFAULT_FILES[file_name]
 
-        if not "miner.config" in self.files.keys():
+        if not 'miner.config' in self.files.keys():
             self.files["miner.config"] = self.nick
 
 
@@ -392,15 +389,14 @@ _______________________________________
 
     def export(self):
         return {
-            "nick": self.nick,
-            "squad": self.squad,
-            "ip": self.ip,
-            "dc_id": self.dc_id,
-            "os": self.os,
-            "wallet": self.wallet,
-            "software": self.software,
-            "files": self.files,
-            "exploits": self.exploits,
-            "port_config": self.port_config,
-            #"time_zone": self.t_zone,
+            'nick': self.nick,
+            'squad': self.squad,
+            'ip': self.ip,
+            'dc_id': self.dc_id,
+            'os': self.os,
+            'wallet': self.wallet,
+            'software': self.software,
+            'files': self.files,
+            'exploits': self.exploits,
+            'port_config': self.port_config,
         }

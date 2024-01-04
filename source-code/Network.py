@@ -15,21 +15,21 @@ from Errors import error
 
 FREQUENCY: float = 0.25
 AI_TIME: int = 60 * 30
-# NOTIFICATION_CHANNEL: str = "terminal"
+# NOTIFICATION_CHANNEL: str = 'terminal'
 MAX_CV: int = int(1e9)
 MAX_CV_HASH: int = 10000
 FOUND_CV_AMOUNT: int = 4
 
 PASSWD_LENGHT: int = 4
-PASSWDS_ALPHABET: str = "02458AMPQYZ"
+PASSWDS_ALPHABET: str = '02458AMPQYZ'
 MAX_GUESS: int = len(PASSWDS_ALPHABET) ** PASSWD_LENGHT
 
 MAX_EXPLOITS_AMOUNT: int = 20
 
-SYSTEM_IP: str = "0.0.0.0"
+SYSTEM_IP: str = '0.0.0.0'
 
 SYSTEM_PORTS: dict = {
-    "mine": 76,
+    'mine': 76,
 }
 
 DEFAULT_OS: int = 0
@@ -62,7 +62,7 @@ class Offer:
 
 class Network:
     '''class for handling virtual network'''
-    running: bool = False
+    running: bool
 
     bank: int
     offers: list[Offer]
@@ -74,25 +74,23 @@ class Network:
     by_id: dict[int, VM]
 
     mods: list[int]
-    # guilds: dict[int, dict[str, int|bool]] # {guild_id: {'owner': owner_id, 'is_private': is_whole_private}}
 
     system_network: dict[int, Packet]
 
-    __cv_hash__: str
-    __db_filename__: str
+    _cv_hash: str
+    _db_filename: str
 
 
     def __init__(self, db_filename: str, admin_id: int):
         self.running = True
-        self.__db_filename__ = db_filename
-        self.__cv_hash__ = str(randint(0, MAX_CV_HASH))
+        self._db_filename = db_filename
+        self._cv_hash = str(randint(0, MAX_CV_HASH))
         self.squads = {}
         self.by_ip = {}
         self.by_nick = {}
         self.by_id = {}
 
         self.mods = []
-        self.guilds = {}
         
         self.system_network = {}
         self.bank = MAX_CV
@@ -105,6 +103,7 @@ class Network:
 
         self.mods.append(admin_id)
 
+
     def _load(self):
         exploits: list
         port_config: dict
@@ -112,57 +111,68 @@ class Network:
         os: int
         dc_id: int
 
-        db: shelve.Shelf = shelve.open(self.__db_filename__, "r")
+        db: shelve.Shelf = shelve.open(self._db_filename, 'r')
         
-        for vm in db["vms"]:
+        for vm in db['vms']:
             
-            if "dc_id" in vm.keys():
-                dc_id = vm["dc_id"]
+            if 'dc_id' in vm.keys():
+                dc_id = vm['dc_id']
             else:
                 dc_id = -1
 
-            if "exploits" in vm.keys():
-                exploits = vm["exploits"]
+            if 'exploits' in vm.keys():
+                exploits = vm['exploits']
             else:
                 exploits = []
 
-            if "port_config" in vm.keys():
-                port_config = vm["port_config"]
+            if 'port_config' in vm.keys():
+                port_config = vm['port_config']
             else:
                 port_config = {}
             
-            if "wallet" in vm.keys():
-                wallet = vm["wallet"]
+            if 'wallet' in vm.keys():
+                wallet = vm['wallet']
             else:
                 wallet = 0
 
-            if "os" in vm.keys():
-                os = vm["os"]
+            if 'os' in vm.keys():
+                os = vm['os']
             else:
                 os = DEFAULT_OS
             
-            self.by_nick[vm["nick"]] = VM(vm["nick"], vm["squad"], vm["ip"], dc_id, os, wallet, vm["software"], vm["files"], exploits, port_config)
-            self.by_ip[vm["ip"]] = self.by_nick[vm["nick"]]
+            self.by_nick[vm['nick']] = VM(vm['nick'], vm['squad'], vm['ip'], dc_id, os, wallet, vm['software'], vm['files'], exploits, port_config)
+            self.by_ip[vm['ip']] = self.by_nick[vm['nick']]
             
             if dc_id != -1:
-                self.by_id[dc_id] = self.by_nick[vm["nick"]]
+                self.by_id[dc_id] = self.by_nick[vm['nick']]
                 
 
-        for squad in db["squads"]:
-            self.squads[squad["name"]] = Squad(squad["name"], squad["members"], squad["recruting"])
+        for squad in db['squads']:
+            self.squads[squad['name']] = Squad(squad['name'], squad['members'], squad['recruting'])
 
 
-        if "bank" in db.keys():
-            self.bank = db["bank"]
+        if 'bank' in db.keys():
+            self.bank = db['bank']
 
         if 'mods' in db.keys():
             self.mods = db['mods']
         
-        if "offers" in db.keys():
-            self.offers = db["offers"]
+        if 'offers' in db.keys():
+            self.offers = db['offers']
         
         db.close()
 
+    def _generate_ip(self) -> str:
+        ip: str = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+        
+        while ip in self.by_ip.keys() or ip == SYSTEM_IP:
+            ip = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
+
+        return ip
+
+    def _generate_password(self) -> str:
+        return "".join(choices(PASSWDS_ALPHABET, k=PASSWD_LENGHT))
+    
     def transfer(self, amount: int, destination: str|None=None, source: str|None=None) -> bool:
         if source == None:
             if destination == None:
@@ -191,20 +201,18 @@ class Network:
         packet: Packet
         args: list
 
-        packet = self.recv(SYSTEM_PORTS["mine"])
+        packet = self.recv(SYSTEM_PORTS['mine'])
         args = packet.content.split()
-        
-        #print(args)
 
-        if len(args) == 2 and args[1] in self.by_nick.keys() and args[0] == self.__cv_hash__:
-            print(f"Found by {args[1]}")
+        if len(args) == 2 and args[1] in self.by_nick.keys() and args[0] == self._cv_hash:
+            print(f'Found by {args[1]}')
 
-            # self.notifications.append((NOTIFICATION_CHANNEL, None, f"The CV hash has been found by {args[1]}."))
+            # self.notifications.append((NOTIFICATION_CHANNEL, None, f'The CV hash has been found by {args[1]}.'))
             
-            if self.transfer(FOUND_CV_AMOUNT + self.by_nick[args[1]].software["miner"], args[1]) is True:
-                self.direct_send((self.by_nick[args[1]].ip, 7676), (SYSTEM_IP, SYSTEM_PORTS["mine"]), "found")
+            if self.transfer(FOUND_CV_AMOUNT + self.by_nick[args[1]].software['miner'], args[1]) is True:
+                self.direct_send((self.by_nick[args[1]].ip, 7676), (SYSTEM_IP, SYSTEM_PORTS['mine']), 'found')
             
-            self.__cv_hash__ = str(randint(0, MAX_CV_HASH))
+            self._cv_hash = str(randint(0, MAX_CV_HASH))
 
 
     def exploit(self, vm: VM, packet_source_ip: str, target_ip: str, target_port: int, exploit_id: int, attacker_nick: str|None=None, secret: str|None=None):
@@ -215,40 +223,40 @@ class Network:
             attacker_nick = vm.nick
         
         if not attacker_nick in self.by_nick.keys():
-            return "Error! Exploit not found."
+            return 'Error! Exploit not found.'
             
         attacker = self.by_nick[attacker_nick]
 
         if not target_ip in self.by_ip.keys():
-            return "Exploit failed! Target not found."
+            return 'Exploit failed! Target not found.'
 
         if exploit_id >= len(attacker.exploits):
-            return "Error! Exploit not found."
+            return 'Error! Exploit not found.'
 
         if target_port != self.by_ip[target_ip].port_config['ssh']:
             if target_port in self.by_ip[target_ip].port_config.values():
-                return "Error! Address responded with different protocol.\nAI hint: Scan the target to see on what port is SHH running."
+                return 'Error! Address responded with different protocol.\nAI hint: Scan the target to see what port is SHH running on.'
             
-            return "Target didn't respond.\nAI hint: Scan the target to see on what port is SHH running."
+            return 'Target didn\'t respond.\nAI hint: Scan the target to see what port is SHH running on.'
 
         if secret == None:
             secret = str(attacker.exploits[exploit_id].secret)
 
-        self.direct_send((target_ip, target_port), (vm.ip, 2222), f"expl {exploit_id} {attacker_nick} {secret}")
+        self.direct_send((target_ip, target_port), (vm.ip, 2222), f'expl {exploit_id} {attacker_nick} {secret}')
         self.ssh(self.by_ip[target_ip])
 
         answer = self.recv(2222, vm).content
         
-        if answer == "accept":
-            vm.forward_to[packet_source_ip] = (target_ip, self.by_ip[target_ip].port_config["ssh"])
+        if answer == 'accept':
+            vm.forward_to[packet_source_ip] = (target_ip, self.by_ip[target_ip].port_config['ssh'])
             
-            return f"Connected to {self.by_ip[target_ip].nick}({target_ip})"
+            return f'Connected to {self.by_ip[target_ip].nick}({target_ip})'
         
-        elif answer == "no response":
-            return "Target didn't respond."
+        elif answer == 'no response':
+            return 'Target didn\'t respond.'
 
-        elif answer == "failed":
-            return "Error! Exploit failed."
+        elif answer == 'failed':
+            return 'Error! Exploit failed.'
 
         return answer
 
@@ -256,35 +264,35 @@ class Network:
         attacker: VM
 
         if not attacker_nick in self.by_nick.keys():
-            return "args"
+            return 'args'
         
         attacker = self.by_nick[attacker_nick]
 
         if exploit_id >= len(attacker.exploits):
-            return "id"
+            return 'id'
 
         if str(attacker.exploits[exploit_id].secret) != secret:
-            return "secret"
+            return 'secret'
 
         if attacker.exploits[exploit_id].os != vm.os:
-            return "no response"
+            return 'no response'
 
         if chance(attacker.exploits[exploit_id].success_rate) is True:
-            if EXPLOITS[attacker.exploits[exploit_id].category] == "ssh":
-                if attacker.exploits[exploit_id].lvl < vm.software["ssh"]:
-                    return "failed"
+            if EXPLOITS[attacker.exploits[exploit_id].category] == 'ssh':
+                if attacker.exploits[exploit_id].lvl < vm.software['ssh']:
+                    return 'failed'
 
-                return "ssh"
+                return 'ssh'
             
             else:
-                if attacker.exploits[exploit_id].lvl < vm.software["kernel"]:
-                    return "failed"
+                if attacker.exploits[exploit_id].lvl < vm.software['kernel']:
+                    return 'failed'
 
-                vm.add_to_log("Critical kernel error occured!")
-                return "kernel"
+                vm.add_to_log('Critical kernel error occured!')
+                return 'kernel'
 
         else:
-            return "failed"
+            return 'failed'
 
     def ssh(self, vm: VM) -> str:
         packet: Packet | None
@@ -293,10 +301,10 @@ class Network:
         args: list
         iosout: str
 
-        packet = self.recv(vm.port_config["ssh"], vm)
+        packet = self.recv(vm.port_config['ssh'], vm)
         
         if packet.content == '':
-            return "Error! Connection refused."
+            return 'Error! Connection refused.'
         
         args = packet.content.split()
 
@@ -305,113 +313,113 @@ class Network:
             if packet.source[0] in vm.forward_to.keys():
                 target = self.by_ip[vm.forward_to[packet.source[0]][0]]
                 
-                if args[0] == "exploit" and packet.source[0] == vm.nick:
-                    self.direct_send((target.ip, vm.forward_to[packet.source[0]][1]), (vm.ip, 2222), f"{packet.content} {vm.nick} {vm.exploits[int(args[3])].secret}")
+                if args[0] == 'exploit' and packet.source[0] == vm.nick:
+                    self.direct_send((target.ip, vm.forward_to[packet.source[0]][1]), (vm.ip, 2222), f'{packet.content} {vm.nick} {vm.exploits[int(args[3])].secret}')
                 else:
                     self.direct_send((target.ip, vm.forward_to[packet.source[0]][1]), (vm.ip, 2222), packet.content)
                 
                 self.ssh(target)
                 answer = self.recv(2222, vm)
                 
-                if answer.content.split()[0] == "disconnect":
+                if answer.content.split()[0] == 'disconnect':
                     vm.forward_to.pop(packet.source[0])
-                    iosout = f"Connection to {target.nick}({target.ip}) has been closed."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = f'Connection to {target.nick}({target.ip}) has been closed.'
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-                elif answer.content.split()[0] == "proxy":
-                    iosout = f"{answer.content} < {vm.nick}"
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                elif answer.content.split()[0] == 'proxy':
+                    iosout = f'{answer.content} < {vm.nick}'
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                 
-                elif answer.content == "access denied":
+                elif answer.content == 'access denied':
                     vm.forward_to.pop(packet.source[0])
-                    iosout = "Access denied! Not authenticated."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = 'Access denied! Not authenticated.'
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                     
                 iosout = answer.content
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "help":
+            elif args[0] == 'help':
                 iosout = vm.help()
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
             
-            elif args[0] == "passwd":
+            elif args[0] == 'passwd':
                 self.set_passwd(vm.nick)
-                iosout = "Password has been changed."
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                iosout = 'Password has been changed.'
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "ls":
+            elif args[0] == 'ls':
                 iosout = vm.ls()
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "cat":
+            elif args[0] == 'cat':
                 if len(args) != 2:
-                    iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout =  error(0, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
                 iosout = vm.cat(args[1])
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
             elif args[0] == 'edit':
                 if len(args) != 3:
-                    iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout =  error(0, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
                 iosout = vm.edit(args[1], args[2])
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "transfer":
+            elif args[0] == 'transfer':
                 if len(args) != 3:
-                    iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout =  error(0, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                 
                 if args[2].isdigit() is False:
-                    iosout =  "Error! Incorrect values of the arguments. Check '> help' command."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout =  error(1, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
                 if not args[1] in self.by_nick.keys():
-                    iosout = "Error! Target VM not found."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = 'Error! Target VM not found.'
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
                 if int(args[2]) > vm.wallet - (50 * vm.software["kernel"]):
-                    iosout = f"Error! Max transefr value: {vm.wallet - (50 * vm.software['kernel'])} [CV]"
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = f'Error! Max transefr value: {vm.wallet - (50 * vm.software["kernel"])} [CV]'
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                 
                 self.transfer(int(args[2]), args[1], vm.nick)
-                vm.add_to_log(f"Transfered {int(args[2])} CV to {args[1]}.")
-                self.by_nick[args[1]].add_to_log(f"Transaction: {int(args[2])} CV from {vm.nick}")
+                vm.add_to_log(f'Transfered {int(args[2])} CV to {args[1]}.')
+                self.by_nick[args[1]].add_to_log(f'Transaction: {int(args[2])} CV from {vm.nick}')
 
-                iosout = f"Transfered {int(args[2])} [CV] to {args[1]}."
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                iosout = f'Transfered {int(args[2])} [CV] to {args[1]}.'
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "whoami":
+            elif args[0] == 'whoami':
                 iosout = vm.whoami()
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
-            elif args[0] == "rm":
+            elif args[0] == 'rm':
                 if len(args) != 2:
-                    iosout =  "Error! Incorrect amount of arguments. Check '> help' command."
+                    iosout =  error(0, 0)
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
                 
                 iosout = vm.remove(args[1])
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
-            elif args[0] == "ps":
+            elif args[0] == 'ps':
                 iosout = vm.ps()
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
-            elif args[0] == "scan":
+            elif args[0] == 'scan':
                 if len(args) != 2:
-                    iosout = "Error! Incorrect amount of arguments. Check '> help' command."
+                    iosout = error(0, 0)
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
                 
-                if args[1] == "target" and "target.config" in vm.files.keys():
-                    iosout = self.start_scan(vm, vm.files["target.config"])
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                if args[1] == 'target' and 'target.config' in vm.files.keys():
+                    iosout = self.start_scan(vm, vm.files['target.config'])
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
                 iosout = self.start_scan(vm, args[1])
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "panel":
+            elif args[0] == 'panel':
                 iosout = vm.dashboard()
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
             
@@ -419,21 +427,20 @@ class Network:
                 iosout = vm.get_wallet()
                 return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "clear":
+            elif args[0] == 'clear':
                 if len(args) != 2:
-                    iosout = error(0, 1)
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = error(0, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "exploit":
-                #print(args)
+            elif args[0] == 'exploit':
                 #print(f"{packet.source[0]} {vm.nick}")
 
                 if (packet.source[0] != vm.nick and len(args) != 6) or (packet.source[0] == vm.nick and len(args) != 4):
-                    iosout = "Error! Incorrect amount of arguments. Check '> help' command."
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    iosout = error(0, 0)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                 
                 if args[2].isnumeric() is False or args[3].isnumeric() is False:
-                    iosout = "Error! Incorrect values of the arguments. Check '> help' command."
+                    iosout = error(1, 0)
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
                 
                 if packet.source[0] != vm.nick:
@@ -444,25 +451,25 @@ class Network:
 
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
-            elif args[0] == "exit":
+            elif args[0] == 'exit':
                 vm.exit(packet.source[0])
                 
-                iosout = "disconnect"
+                iosout = 'disconnect'
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
             
-            elif args[0] == "proxy":
-                iosout = f"proxy {vm.nick}"
+            elif args[0] == 'proxy':
+                iosout = f'proxy {vm.nick}'
                 
-                return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
 
-            elif args[0] == "close":
+            elif args[0] == 'close':
                 iosout = vm.close()
 
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
-            elif args[0] == "ssh":
+            elif args[0] == 'ssh':
                 if len(args) != 4:
-                    iosout = "Error! Incorrect amount of arguments. Check '> help' command."
+                    iosout = error(0, 0)
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
                 if not args[1] in self.by_ip.keys():
@@ -508,60 +515,61 @@ class Network:
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
                 
                 if args[0] in vm.files.keys():
-                    iosout = "File updated."
+                    iosout = 'File updated.'
                 else:
-                    iosout = "File has been created."
+                    iosout = 'File has been created.'
                 
                 vm.files[args[0]] = ' '.join(args[2:])
 
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
             else:
-                iosout = "Error! Command not found."
+                iosout = 'Error! Command not found.'
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
         
         else: # if not logged in:
-            if args[0] == "connect":
+            if args[0] == 'connect':
                 if len(args) != 2:
-                    iosout = "args"
+                    iosout = 'args'
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
-                if md5(args[1].encode('ascii')).hexdigest() != vm.files["shadow.sys"]:
-                    vm.add_to_log(f"Connection failed from {packet.source[0]}.")
+                
+                if md5(args[1].encode('ascii')).hexdigest() != vm.files['shadow.sys']:
+                    vm.add_to_log(f'Connection failed from {packet.source[0]}.')
                     
-                    iosout = "credentials"
+                    iosout = 'credentials'
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
                 vm.add_to_log(f"{packet.source[0]} has just connected.")
                 
-                iosout = "accept"
+                iosout = 'accept'
                 vm.logged_in.append(packet.source[0])
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
             
-            elif args[0] == "expl":
+            elif args[0] == 'expl':
                 
                 #"exploit <id> <nick> <secret>"
                 print(args)
 
                 if len(args) != 4 or args[1].isdigit() is False:
-                    iosout = "args"
+                    iosout = 'args'
                     return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
                 iosout = self.handle_exploit(vm, int(args[1]), args[2], args[3])
                 
-                if iosout == "ssh":
-                    iosout = vm.cat("shadow.sys")
-                elif iosout == "kernel":
-                    iosout = f"accept"
+                if iosout == 'ssh':
+                    iosout = vm.cat('shadow.sys')
+                elif iosout == 'kernel':
+                    iosout = f'accept'
                     vm.logged_in.append(packet.source[0])
                 
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
                 
-            elif args[0] == "ping":
-                iosout = "SSH"
+            elif args[0] == 'ping':
+                iosout = 'SSH'
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
 
             else:
-                iosout = "access denied"
+                iosout = 'access denied'
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
         
         return ''
@@ -581,8 +589,8 @@ class Network:
         vm: VM = self.by_id[dc_id]
         finish_time: int
 
-        if vm.software["AI"] < lvl:
-            return error(2, 2)
+        if vm.software['AI'] < lvl:
+            return error(2, 1)
 
         if len(vm.exploits) >= MAX_EXPLOITS_AMOUNT:
             return error(3)
@@ -632,7 +640,7 @@ class Network:
             vm.add_to_log("Bruteforce failed.")
             # self.notifications.append((vm.squad, vm.nick, "Bruteforce failed."))
             
-            process.name = "temp"
+            process.name = 'tmp'
             process.code = ["exit", ]
             return
 
@@ -646,7 +654,7 @@ class Network:
             vm.add_to_log("Bruteforce completed.")
             # self.notifications.append((vm.squad, vm.nick, f"Bruteforce completed.\nPassword: {guess}\nAlso you can check > cat pass.txt to see the resoult."))
 
-            process.name = "temp"
+            process.name = "tmp"
             process.code = ["exit", ]
             return
         
@@ -689,19 +697,8 @@ class Network:
                 vm.files["scan.txt"] += f"\t{port:<2}:    {answer.content}\n{25 * '_'}"
             
             # print(vm.files["scan.txt"])
-            process.name = "temp"
-            process.code = ["exit", ]
-
-    def _generate_ip(self) -> str:
-        ip: str = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
-        
-        while ip in self.by_ip.keys() or ip == SYSTEM_IP:
-            ip = f"{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}.{random.randint(0, 255)}"
-
-        return ip
-
-    def _generate_password(self) -> str:
-        return "".join(choices(PASSWDS_ALPHABET, k=PASSWD_LENGHT))
+            process.name = 'tmp'
+            process.code = ['exit', ]
     
     def update(self, dc_id: int, software_id: int) -> str:
         vm: VM = self.by_id[dc_id]
@@ -797,25 +794,25 @@ class Network:
                     cmd = vm.cpu[pid].cmd()
                     name = vm.cpu[pid].name
 
-                    if name == "miner":
+                    if name == 'miner':
                         for _ in range(0, (vm.software["miner"] // 4) + 1):
                             self.vm_miner(vm)
                             self.sys_mine()
                     
-                    elif name == "scan":
+                    elif name == 'scan':
                         self.vm_scan(vm, vm.cpu[pid])
 
-                    elif name == "ssh":
+                    elif name == 'ssh':
                         self.ssh(vm)
 
-                    elif name == "bf":
+                    elif name == 'bf':
                         self.vm_bf(vm, vm.cpu[pid])
                     
-                    elif name == "ai":
+                    elif name == 'ai':
                         self.vm_ai(vm, vm.cpu[pid])
                     
                     
-                    elif cmd[0] == "exit":
+                    elif cmd[0] == 'exit':
                         vm.cpu.pop(pid)
                         continue
 
@@ -870,7 +867,7 @@ class Network:
         for squad in self.squads.values():
             squads.append(squad.export())
         
-        db = shelve.open(self.__db_filename__, "w")
+        db = shelve.open(self._db_filename, "w")
         db["vms"] = vms
         db["squads"] = squads
         db['mods'] = self.mods

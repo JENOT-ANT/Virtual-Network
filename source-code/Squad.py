@@ -4,13 +4,13 @@ from VM import VM
 MAX_MEMBERS: int = 12
 
 RANKS: dict = {
-    "Apprentice": 0,
-    "Sergeant": 1,
-    "Co-Captain": 2,
-    "Captain": 3,
+    'Apprentice': 0,
+    'Sergeant': 1,
+    'Co-Captain': 2,
+    'Captain': 3,
 }
 
-INT_TO_RANK: tuple = ("Apprentice", "Sergeant", "Co-Captain", "Captain",)
+INT_TO_RANK: tuple = ('Apprentice', 'Sergeant', 'Co-Captain', 'Captain',)
 
 
 class Squad:
@@ -55,7 +55,7 @@ class Squad:
         output: str
 
         output = f"""
- ______________________________
+________________________________
 |{               self.name:^30}|
 |==============================|
 |{f' members: {len(self.members)}/{MAX_MEMBERS}':<30}|
@@ -72,8 +72,8 @@ class Squad:
 
     def export(self) -> dict:
         return {
-            "name": self.name,
-            "members": self.members,
-            "recruting": self.recruting,
+            'name': self.name,
+            'members': self.members,
+            'recruting': self.recruting,
         }
     
