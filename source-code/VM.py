@@ -1,6 +1,5 @@
 from hashlib import md5
-from time import gmtime, asctime
-from random import randint
+from time import gmtime
 from uuid import uuid4, UUID
 
 
@@ -352,17 +351,17 @@ ___________________________________
 
         return output
 
-    def __init__(self, nick: str, squad: str | None, ip: str, dc_id: int, os: int, wallet: int=0, software: dict={}, files: dict={}, exploits: list=[], port_config: dict={}):
+    def __init__(self, nick: str, squad: str | None, ip: str, dc_id: int, os: int, wallet: int=0, software: dict | None=None, files: dict | None=None, exploits: list | None=None, port_config: dict | None=None):
         self.nick = nick
         self.squad = squad
         self.ip = ip
         self.dc_id = dc_id
         self.os = os
         self.wallet = wallet
-        self.software = software
-        self.files = files
-        self.exploits = exploits
-        self.port_config = port_config
+        self.software = software if software is not None else {}
+        self.files = files if files is not None else {}
+        self.exploits = exploits if exploits is not None else []
+        self.port_config = port_config if port_config is not None else {}
         
         
         self.cpu = [Process('miner', 'pass'), Process('ssh', 'pass')]
@@ -380,7 +379,7 @@ ___________________________________
                 self.files[file_name] = DEFAULT_FILES[file_name]
 
         if not 'miner.config' in self.files.keys():
-            self.files["miner.config"] = self.nick
+            self.files['miner.config'] = self.nick
 
 
         for program in DEFAULT_PORT_CONFIG.keys():

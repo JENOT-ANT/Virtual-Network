@@ -210,7 +210,7 @@ class Network:
             # self.notifications.append((NOTIFICATION_CHANNEL, None, f'The CV hash has been found by {args[1]}.'))
             
             if self.transfer(FOUND_CV_AMOUNT + self.by_nick[args[1]].software['miner'], args[1]) is True:
-                self.direct_send((self.by_nick[args[1]].ip, 7676), (SYSTEM_IP, SYSTEM_PORTS['mine']), 'found')
+                self.direct_send((self.by_nick[args[1]].ip, 7676), (SYSTEM_IP, SYSTEM_PORTS['mine']), '!found')
             
             self._cv_hash = str(randint(0, MAX_CV_HASH))
 
@@ -242,7 +242,7 @@ class Network:
         if secret == None:
             secret = str(attacker.exploits[exploit_id].secret)
 
-        self.direct_send((target_ip, target_port), (vm.ip, 2222), f'expl {exploit_id} {attacker_nick} {secret}')
+        self.direct_send((target_ip, target_port), (vm.ip, 2222), f'!expl {exploit_id} {attacker_nick} {secret}')
         self.ssh(self.by_ip[target_ip])
 
         answer = self.recv(2222, vm).content
@@ -441,7 +441,7 @@ class Network:
                 
                 if args[2].isnumeric() is False or args[3].isnumeric() is False:
                     iosout = error(1, 0)
-                    return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
+                    return self.direct_send(packet.source, (vm.ip, vm.port_config['ssh']), iosout)
                 
                 if packet.source[0] != vm.nick:
                     iosout = self.exploit(vm, packet.source[0], args[1], int(args[2]), int(args[3]), args[4], args[5])
@@ -545,7 +545,7 @@ class Network:
                 vm.logged_in.append(packet.source[0])
                 return self.direct_send(packet.source, (vm.ip, vm.port_config["ssh"]), iosout)
             
-            elif args[0] == 'expl':
+            elif args[0] == '!expl':
                 
                 #"exploit <id> <nick> <secret>"
                 print(args)
@@ -582,7 +582,7 @@ class Network:
         if 7676 in vm.network.keys():
             answer = self.recv(7676, vm)
             
-            if answer.source[0] == SYSTEM_IP and answer.content == "found":
+            if answer.source[0] == SYSTEM_IP and answer.content == '!found':
                 vm.add_to_log(f"Found {FOUND_CV_AMOUNT + vm.software['miner']} [CV] by miner.")
     
     def start_ai(self, dc_id: int, lvl: int) -> str:
